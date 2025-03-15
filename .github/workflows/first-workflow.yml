@@ -25,4 +25,4 @@ jobs:
           echo $PWD
           cd .github/workflows
           chmod +x ./first-ascii-script.sh
-          ./ascii-script.sh
+          ./first-ascii-script.sh
