@@ -12,8 +12,10 @@ jobs:
       - name: Welcome message
         run: echo "My First Github Actions Job"
 
-      - name: List Files
-        run: ls -a
-
-      - name: Read File
-        run: cat README.md
+      - name: Mulline command
+        run: |
+          echo "This is part of a job with multiline command"
+          echo "List files"
+          ls -ltra
+          echo "Show README.md contents file"
+          cat README.md
