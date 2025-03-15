@@ -21,6 +21,7 @@ jobs:
         chmod +x ./scripts/*.sh
 
   ascii_build_job:
+    needs: chmod_scripts_job
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repo
@@ -37,7 +38,7 @@ jobs:
         ./scripts/ascii-script-build.sh
         
   ascii_test_job:
-    needs: ascii_build_job
+    needs: chmod_scripts_job
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repo
