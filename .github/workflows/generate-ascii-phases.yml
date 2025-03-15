@@ -17,9 +17,8 @@ jobs:
 
     - name: Build Cowsay CMD
       run: |
-        cd .github/
-        chmod +x ./scripts/ascii-script-build.sh
-        ./scripts/ascii-script-build.sh
+        chmod +x ./github/scripts/ascii-script-build.sh
+        ./github/scripts/ascii-script-build.sh
         
   ascii_test_job:
     needs: ascii_build_job
@@ -35,9 +34,8 @@ jobs:
 
     - name: Test Cowsay CMD
       run: |
-        cd .github/
-        chmod +x ./scripts/ascii-script-test.sh
-        ./scripts/ascii-script-test.sh
+        chmod +x ./github/scripts/ascii-script-test.sh
+        ./github/scripts/ascii-script-test.sh
 
   ascii_deploy_job:
     needs: [ ascii_build_job, ascii_test_job ]
@@ -48,6 +46,5 @@ jobs:
 
     - name: Deploy Cowsay CMD
       run: |
-        cd .github/
-        chmod +x ./scripts/ascii-script-deploy.sh
-        ./scripts/ascii-script-deploy.sh
+        chmod +x ./github/scripts/ascii-script-deploy.sh
+        ./github/scripts/ascii-script-deploy.sh
