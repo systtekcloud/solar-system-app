@@ -4,24 +4,7 @@ on:
   [push]
 
 jobs:
-  chmod_scripts_job:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v4
-
-    - name: Checkout Repo Files
-      run: |
-        pwd
-        ls -ltra
-
-    - name: Change Permissions
-      run: |
-        cd .github/
-        chmod +x ./scripts/*.sh
-
   ascii_build_job:
-    needs: chmod_scripts_job
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repo
@@ -35,10 +18,11 @@ jobs:
     - name: Build Cowsay CMD
       run: |
         cd .github/
+        chmod +x ./scripts/ascii-script-build.sh
         ./scripts/ascii-script-build.sh
         
   ascii_test_job:
-    needs: chmod_scripts_job
+    needs: ascii_build_job
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repo
@@ -52,6 +36,7 @@ jobs:
     - name: Test Cowsay CMD
       run: |
         cd .github/
+        chmod +x ./scripts/ascii-script-test.sh
         ./scripts/ascii-script-test.sh
 
   ascii_deploy_job:
@@ -64,4 +49,5 @@ jobs:
     - name: Deploy Cowsay CMD
       run: |
         cd .github/
+        chmod +x ./scripts/ascii-script-deploy.sh
         ./scripts/ascii-script-deploy.sh
