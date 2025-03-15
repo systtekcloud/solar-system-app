@@ -22,6 +22,7 @@ jobs:
 
       - name: Generate ASCII Art with cowsay
         run: |
-          cd .github/workflows/scripts
-          chmod +x first-ascii-script.sh
+          echo $PWD
+          cd .github/workflows
+          chmod +x ./first-ascii-script.sh
           ./ascii-script.sh
