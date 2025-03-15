@@ -4,21 +4,40 @@ on:
   [push]
 
 jobs:
+  chmod_scripts_job:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v4
+
+    - name: Checkout Repo Files
+    run: |
+      pwd
+      ls -ltra
+
+    - name: Change Permissions
+    run: |
+      chmod +x ../scripts/ascii-script-build.sh
+      chmod +x ../scripts/ascii-script-test.sh
+      chmod +x ../scripts/ascii-script-deploy.sh
+
+
   ascii_build_job:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v4
 
+    - name: Checkout Repo Files
+    run: |
+      pwd
+      ls -ltra
+
     - name: Build Cowsay CMD
       run: |
-        chmod +x ./scripts/ascii-script-build.sh
-        ./scripts/ascii-script-build.sh
+        ../scripts/ascii-script-build.sh
         
-    - name: Checkout Repo Files
-      run: |
-        pwd
-        ls -ltra
+    
 
   ascii_test_job:
     needs: ascii_build_job
@@ -34,8 +53,7 @@ jobs:
 
     - name: Test Cowsay CMD
       run: |
-        chmod +x ./scripts/ascii-script-test.sh
-        ./scripts/ascii-script-test.sh
+        ../scripts/ascii-script-test.sh
 
   ascii_deploy_job:
     needs: [ ascii_build_job, ascii_test_job ]
@@ -46,5 +64,4 @@ jobs:
 
     - name: Deploy Cowsay CMD
       run: |
-        chmod +x ./scripts/ascii-script-deploy.sh
-        .scripts/ascii-script-deploy.sh
+        ../scripts/ascii-script-deploy.sh
