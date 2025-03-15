@@ -19,11 +19,23 @@ jobs:
       run: |
         chmod +x ./.github/scripts/ascii-script-build.sh
         ./.github/scripts/ascii-script-build.sh
+
+    - name: Upload Dragon text file
+      uses: actions/upload-artifact@v3
+      with:
+        name: dragon-ascii-artifact
+        path: dragon.txt
         
   ascii_test_job:
     needs: ascii_build_job
     runs-on: ubuntu-latest
     steps:
+    - name: Download Dragon text file
+      uses: actions/upload-artifact@v3
+      with:
+        name: dragon-ascii-artifact
+        path: dragon.txt
+        
     - name: Checkout Repo
       uses: actions/checkout@v4
 
