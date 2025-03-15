@@ -17,7 +17,8 @@ jobs:
 
     - name: Change Permissions
       run: |
-        chmod +x ../scripts/*.sh
+        cd .github/
+        chmod +x ./scripts/*.sh
 
   ascii_build_job:
     runs-on: ubuntu-latest
@@ -29,10 +30,11 @@ jobs:
       run: |
         pwd
         ls -ltra
-        
+
     - name: Build Cowsay CMD
       run: |
-        ../scripts/ascii-script-build.sh
+        cd .github/
+        ./scripts/ascii-script-build.sh
         
   ascii_test_job:
     needs: ascii_build_job
@@ -48,7 +50,8 @@ jobs:
 
     - name: Test Cowsay CMD
       run: |
-        ../scripts/ascii-script-test.sh
+        cd .github/
+        ./scripts/ascii-script-test.sh
 
   ascii_deploy_job:
     needs: [ ascii_build_job, ascii_test_job ]
@@ -59,4 +62,5 @@ jobs:
 
     - name: Deploy Cowsay CMD
       run: |
-        ../scripts/ascii-script-deploy.sh
+        cd .github/
+        ./scripts/ascii-script-deploy.sh
