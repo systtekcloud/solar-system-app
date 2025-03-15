@@ -11,16 +11,13 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Checkout Repo Files
-    run: |
-      pwd
-      ls -ltra
+      run: |
+        pwd
+        ls -ltra
 
     - name: Change Permissions
-    run: |
-      chmod +x ../scripts/ascii-script-build.sh
-      chmod +x ../scripts/ascii-script-test.sh
-      chmod +x ../scripts/ascii-script-deploy.sh
-
+      run: |
+        chmod +x ../scripts/*.sh
 
   ascii_build_job:
     runs-on: ubuntu-latest
@@ -29,16 +26,14 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Checkout Repo Files
-    run: |
-      pwd
-      ls -ltra
-
+      run: |
+        pwd
+        ls -ltra
+        
     - name: Build Cowsay CMD
       run: |
         ../scripts/ascii-script-build.sh
         
-    
-
   ascii_test_job:
     needs: ascii_build_job
     runs-on: ubuntu-latest
