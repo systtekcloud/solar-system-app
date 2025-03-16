@@ -12,8 +12,12 @@ jobs:
 
     - name: Checkout Repo Files
       run: |
+        echo "Checking out Repo Files"
         pwd
+        echo "Listing Files"
         ls -ltra
+        echo "Listing Parent Directory"
+        ls -ltra ../
 
     - name: Build Cowsay CMD
       run: |
@@ -34,6 +38,12 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: dragon-ascii-artifact
+    
+    - name: Test Cowsay CMD
+      run: grep -i "dragon" dragon.txt
+
+    - name: Checkout Repo
+      uses: actions/checkout@v4
 
     - name: Checkout Repo Files
       run: |
@@ -43,9 +53,8 @@ jobs:
         ls -ltra
         echo "Listing Parent Directory"
         ls -ltra ../
-
-    - name: Test Cowsay CMD
-      run: grep -i "dragon" dragon.txt
+        echo "Listing .github/workflows"
+        ls -ltra .github/workflows
 
   ascii_deploy_job:
     needs: [ ascii_build_job, ascii_test_job ]
