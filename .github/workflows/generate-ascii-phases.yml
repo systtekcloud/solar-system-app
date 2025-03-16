@@ -37,8 +37,12 @@ jobs:
 
     - name: Checkout Repo Files
       run: |
+        echo "Checking out Repo Files"
         pwd
+        echo "Listing Files"
         ls -Ra
+        echo "Listing Parent Directory"
+        ls -ls ../
 
     - name: Test Cowsay CMD
       run: grep -i "dragon" dragon.txt
