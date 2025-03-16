@@ -34,28 +34,25 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: dragon-ascii-artifact
-    
-    - name: Checkout Repo
-      uses: actions/checkout@v4
 
     - name: Checkout Repo Files
       run: |
         pwd
         ls -ltRa .github
 
-    # - name: Test Cowsay CMD
-    #   run: |
-    #     chmod +x ./.github/scripts/ascii-script-test.sh
-    #     ./.github/scripts/ascii-script-test.sh
+    - name: Test Cowsay CMD
+      run: grep -i "dragon" dragon.txt
 
   ascii_deploy_job:
     needs: [ ascii_build_job, ascii_test_job ]
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v4
+    - name: Download Dragon text file
+      uses: actions/download-artifact@v4
+      with:
+        name: dragon-ascii-artifact
 
     - name: Deploy Cowsay CMD
       run: |
-        chmod +x ./.github/scripts/ascii-script-deploy.sh
-        ./.github/scripts/ascii-script-deploy.sh
+        cat dragon.txt
+        echo "Deploying ASCII Artwork"

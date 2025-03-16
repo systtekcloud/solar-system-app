@@ -1,2 +1,2 @@
 #/bin/bash
-grep -i "dragon" ./dragon.txt
+grep -i "dragon" dragon.txt
