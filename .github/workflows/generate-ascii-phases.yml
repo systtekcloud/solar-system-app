@@ -21,7 +21,7 @@ jobs:
         ./.github/scripts/ascii-script-build.sh
 
     - name: Upload Dragon text file
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dragon-ascii-artifact
         path: dragon.txt
@@ -31,18 +31,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download Dragon text file
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dragon-ascii-artifact
-        path: dragon.txt
-        
-    - name: Checkout Repo
-      uses: actions/checkout@v4
+        path: .
 
     - name: Checkout Repo Files
       run: |
         pwd
-        ls -ltRa
+        ls -ltRa .
 
     - name: Test Cowsay CMD
       run: |
