@@ -38,7 +38,7 @@ jobs:
     - name: Checkout Repo Files
       run: |
         pwd
-        ls -ltRa .github
+        ls -Ra
 
     - name: Test Cowsay CMD
       run: grep -i "dragon" dragon.txt
