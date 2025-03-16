@@ -31,10 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download Dragon text file
-      uses: actions/upload-artifact@v4
+      uses: actions/download-artifact@v4
       with:
         name: dragon-ascii-artifact
-        path: .
+    
+    - name: Checkout Repo
+      uses: actions/checkout@v4
 
     - name: Checkout Repo Files
       run: |
