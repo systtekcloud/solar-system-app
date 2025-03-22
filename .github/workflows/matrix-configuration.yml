@@ -15,15 +15,15 @@ jobs:
       matrix:
         node-version: [14.x, 15.x, 16.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
-        images: [ubuntu, windows, macos]
+        images: [hello-world, alpine]
         exclude:
-          - node-version: 14.x
+          - node-version: 14.x, 15.x, 16.x
             os: windows-latest
-          - node-version: 15.x
+          - node-version: 14.x, 15.x
             os: macos-latest
         include:
           - images: alpine
-            os: ubuntu-latest
+            os: ubuntu-latest, macos-latest
             node-version: 16.x
     runs-on: ${{ matrix.os }}
     steps:
