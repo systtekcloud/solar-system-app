@@ -17,7 +17,10 @@ jobs:
         os: [ubuntu-latest, ubuntu-20.04, windows-latest]
         images: [hello-world, alpine]
         exclude:
-          - node-version: 15.x, 16.x
+          - node-version: 15.x
+            images: alpine
+            os: windows-latest
+          - node-version: 16.x
             images: alpine
             os: windows-latest
         include:
