@@ -1,0 +1,45 @@
+name: Matrix Configuration
+
+on: 
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        node-version: [14.x, 15.x, 16.x]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        images: [ubuntu, windows, macos]
+        exclude:
+          - node-version: 14.x
+            os: windows-latest
+          - node-version: 15.x
+            os: macos-latest
+        include:
+          - images: alpine
+            os: ubuntu-latest
+            node-version: 16.x
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Display Node.js Version
+      run: node --version
+
+    - name: Echo Docker Info
+      run: docker info
+
+    - name: Run Image on ${{ matrix.os }}
+      run: docker run ${{ matrix.images }}
