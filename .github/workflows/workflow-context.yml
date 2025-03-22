@@ -29,10 +29,10 @@ jobs:
         env:
           MATRIX_CONTEXT: ${{ toJson(matrix) }}
         run: echo "$MATRIX_CONTEXT"
-      - name: Dump env context
+      - name: Dump variables context
         env:
-          ENV_CONTEXT: ${{ toJson(env) }}
-        run: echo "$ENV_CONTEXT"
+          VARIABLES_CONTEXT: ${{ toJson(variables) }}
+        run: echo "$VARIABLES_CONTEXT"
       - name: Dump secrets context
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
