@@ -8,6 +8,7 @@ on:
       - test/*     # Ignore test branches: test/index, test/checkout/payload, etc.
     branches:
       - main
+      - dev
       - '!feature/*'  # Ignore pushing to any branch that starts with feature (feature/add-music, feature/updateImages, etc.) using the negation operator (!)
   pull_request:
     types:
