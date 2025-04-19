@@ -1,0 +1,89 @@
+[{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc9988"
+	},
+	"id": 3,
+	"name": "Earth",
+	"description": "home",
+	"image": "earth.png",
+	"velocity": 29.8,
+	"distance": 149.6
+},
+{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc9989"
+	},
+	"id": 2,
+	"name": "Venus",
+	"description": "hot",
+	"image": "venus.png",
+	"velocity": 35,
+	"distance": 108.2
+},
+{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc998a"
+	},
+	"id": 1,
+	"name": "Mercury",
+	"description": "small",
+	"image": "mercury.png",
+	"velocity": 47.4,
+	"distance": 57.9
+},
+{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc998b"
+	},
+	"id": 4,
+	"name": "Mars",
+	"description": "red",
+	"image": "mars.png",
+	"velocity": 24.1,
+	"distance": 228
+},
+{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc998c"
+	},
+	"id": 5,
+	"name": "Jupiter",
+	"description": "big",
+	"image": "jupiter.png",
+	"velocity": 13.1,
+	"distance": 778.5
+},
+{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc998d"
+	},
+	"id": 6,
+	"name": "Saturn",
+	"description": "rings",
+	"image": "saturn.png",
+	"velocity": 9.7,
+	"distance": 1432
+},
+{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc998e"
+	},
+	"id": 7,
+	"name": "Uranus",
+	"description": "joke",
+	"image": "uranus.png",
+	"velocity": 6.8,
+	"distance": 2867
+},
+{
+	"_id": {
+		"$oid": "667d9ba47103842ba9dc998f"
+	},
+	"id": 8,
+	"name": "Neptune",
+	"description": "blue",
+	"image": "neptune.png",
+	"velocity": 5.4,
+	"distance": 4515
+}]
+
