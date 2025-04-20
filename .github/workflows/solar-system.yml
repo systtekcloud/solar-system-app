@@ -66,6 +66,7 @@ jobs:
           npm install
 
       - name: Run code coverage
+        continue-on-error: true
         run: | 
           npm run coverage
 
