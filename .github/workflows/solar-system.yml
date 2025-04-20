@@ -12,7 +12,9 @@ env:
   MONGO_URI: 'mongodb+srv://cluster-dev.9cntn.mongodb.net/solarsystem'
   MONGO_USERNAME: ${{ vars.MONGO_USERNAME }}
   MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+  OS: ubuntu-latest
   NODE_VERSION: 18
+
 
 jobs:
   unit-testing:
@@ -47,19 +49,15 @@ jobs:
 
   code-coverage:
     name: Code Coverage
-    strategy:
-      matrix:
-        nodejs_version: [18, 19, 20]
-        operating_system: [ubuntu-latest]
-    runs-on: ${{ matrix.operating_system }}
+    runs-on: ${{ env.OS }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up NodeJS Version - ${{ matrix.nodejs_version }}
+      - name: Set up NodeJS Version - ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.nodejs_version }}
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
         run: |
@@ -73,4 +71,4 @@ jobs:
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
         with:
-          name: Code-Coverage-Result-${{ matrix.nodejs_version }}
+          name: Code-Coverage-Result
