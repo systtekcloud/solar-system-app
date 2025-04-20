@@ -67,8 +67,3 @@ jobs:
         continue-on-error: true
         run: | 
           npm run coverage
-
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v4
-        with:
-          name: Code-Coverage-Result
