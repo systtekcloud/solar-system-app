@@ -44,3 +44,32 @@ jobs:
         with:
           name: Mocha-Test-Result-${{ matrix.nodejs_version }}
           path: test-results.xml
+
+  code-coverage:
+    name: Code Coverage
+    strategy:
+      matrix:
+        nodejs_version: [18, 19, 20]
+        operating_system: [ubuntu-latest]
+    runs-on: ${{ matrix.operating_system }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up NodeJS Version - ${{ matrix.nodejs_version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.nodejs_version }}
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Run code coverage
+        run: | 
+          npm run coverage
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Code-Coverage-Result-${{ matrix.nodejs_version }}
