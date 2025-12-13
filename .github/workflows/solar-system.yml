@@ -114,7 +114,6 @@ jobs:
           docker images
           docker run -d \
             --name solar-system-app \
-            --env-file .env \
             -p 3000:3000 \
             -e MONGO_URI=${{ vars.MONGO_URI }} \
             -e MONGO_USERNAME=${{ vars.MONGO_USERNAME }} \
@@ -126,7 +125,7 @@ jobs:
           echo "IP=$IP" >> $GITHUB_ENV
 
           echo Testing Image URL using wget
-          wget -q -O- http://$IP:3000/live | grep live
+          wget -q -O - http://$IP:3000/live | grep live
 
       # - name: Build Docker Image
       #   uses: docker/build-push-action@v6
