@@ -137,7 +137,7 @@ jobs:
           echo "Testing Image URL using wget"
           wget -q -O - http://$IP:3000/live | grep live
 
-      - name: Build Docker Image
+      - name: Docker Push
         uses: docker/build-push-action@v6
         with:
           context: .
