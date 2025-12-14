@@ -1,0 +1,134 @@
+name: Solar System Workflow
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - dev
+      - feature/*
+
+env:
+  MONGO_URI: "mongodb+srv://cluster-dev.9cntn.mongodb.net/solarsystem"
+  MONGO_USERNAME: ${{ vars.MONGO_USERNAME }}
+  MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+  OS: ubuntu-latest
+  NODE_VERSION: 18
+
+jobs:
+  unit-testing:
+    name: Unit Testing
+    strategy:
+      matrix:
+        nodejs_version: [18, 20]
+        operating_system: [ubuntu-latest]
+    runs-on: ${{ matrix.operating_system }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up NodeJS Version - ${{ matrix.nodejs_version }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.nodejs_version }}
+
+      - name: Cache NPM Dependencies
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Run unit tests
+        id: nodejs-unit-testing-step
+        run: |
+          npm test
+
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mocha-Test-Result-${{ matrix.nodejs_version }}
+          path: test-results.xml
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up NodeJS Version - ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Run code coverage
+        continue-on-error: true
+        run: |
+          npm run coverage
+
+      - name: Archive code coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Code-Coverage-Report
+          path: coverage
+
+  docker:
+    name: Containerization
+    needs: [unit-testing, code-coverage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Build For Testing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
+
+      - name: Docker Run For Testing
+        run: |
+          docker images
+          docker run -d \
+            --name solar-system-app \
+            -p 3000:3000 \
+            -e MONGO_URI=${{ vars.MONGO_URI }} \
+            -e MONGO_USERNAME=${{ vars.MONGO_USERNAME }} \
+            -e MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }} \
+            ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
+
+          docker ps
+          export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
+          echo "IP=$IP" >> $GITHUB_ENV
+
+          echo Testing Image URL using wget
+          wget -q -O - http://$IP:3000/live | grep live
+
+      # - name: Build Docker Image
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     push: true
+      #     tags: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
