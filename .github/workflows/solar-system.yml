@@ -96,6 +96,13 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+      - name: GHCR Login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -137,10 +144,12 @@ jobs:
           echo "Testing Image URL using wget"
           wget -q -O - http://$IP:3000/live | grep live
 
-      - name: Docker Push
+      - name: Container Registry Push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           load: true
-          tags: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
+          tags: |
+            ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/solar-system-app:${{ github.sha }}
