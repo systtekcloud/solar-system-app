@@ -6,7 +6,7 @@ RUN apk add --no-cache dumb-init
 
 # Crea un usuario no privilegiado
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+  adduser -S nodejs -u 1001
 
 WORKDIR /usr/app
 
@@ -15,7 +15,7 @@ COPY --chown=nodejs:nodejs package*.json ./
 
 # Instala dependencias (usa npm ci para builds reproducibles)
 RUN npm ci && \
-    npm cache clean --force
+  npm cache clean --force
 
 # Copia el código de la aplicación con permisos correctos
 COPY --chown=nodejs:nodejs . .
@@ -35,4 +35,4 @@ ENTRYPOINT ["dumb-init", "--"]
 
 # NO incluyas ENV con credenciales aquí - se pasan en runtime
 # Las variables MONGO_URI, MONGO_USERNAME, MONGO_PASSWORD se deben pasar con docker run -e
-CMD ["node", "app.js"]
+CMD ["npm", "run", "start"]
