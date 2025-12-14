@@ -65,15 +65,25 @@ jobs:
 
   code-coverage:
     name: Code Coverage
+    container:
+      image: node:18-alpine
+    services:
+      mongo-db:
+        image: siddharth67/mongo-db:non-prod
+        options: --name mongo
+    env:
+      MONGO_URI: "mongodb://localhost:27017/superData"
+      MONGO_USERNAME: ${{ secrets.NON_PROD_MONGO_USERNAME }}
+      MONGO_PASSWORD: ${{ secrets.NON_PROD_MONGO_PASSWORD }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up NodeJS Version - ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      # - name: Set up NodeJS Version - ${{ env.NODE_VERSION }}
+      #   uses: actions/setup-node@v6
+      #   with:
+      #     node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
         run: |
