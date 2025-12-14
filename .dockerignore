@@ -1,22 +1,61 @@
 # ---------------------------------------------------------------------------------*
-# This will prevent your local modules and debug logs from being copied onto your 
+# This will prevent your local modules and debug logs from being copied onto your
 # Docker image and possibly overwriting modules installed within your image.
 # ---------------------------------------------------------------------------------*
+
+# Dependencies
 node_modules
 npm-debug.log
-# ignore .git and .cache folders
+yarn-error.log
+
+# Git files
 .git
+.gitignore
+.gitattributes
+
+# Cache and temp files
 .cache
-# ignore all markdown files (md) beside all README*.md other than README-secret.md
+.npm
+.eslintcache
+*.log
+
+# Markdown files (except README)
 *.md
 !README*.md
 README-secret.md
-# github related files
+
+# GitHub and CI/CD files
 .github/
-# nodejs releated files
-node_modules
-solar-system.png
-.nyc_output
-.talismanrc
+
+# Test files and coverage
 coverage
+.nyc_output
 test-results.xml
+*.test.js
+*.spec.js
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (CRÍTICO: nunca incluir archivos con credenciales en la imagen)
+.env
+.env.*
+*.env
+
+# Docker files (no necesarios dentro de la imagen)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Otros archivos innecesarios
+solar-system.png
+.talismanrc
+exported.json
