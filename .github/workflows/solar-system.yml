@@ -214,11 +214,11 @@ jobs:
 
       - name: Save Nginx Ingress Controller IP as GITHUB Environment Variable
         run: |
-          export INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{items[0].status.loadBalancer.ingress[0].ip}')
+          export INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
 
       - name: Replace Token in Manifest Files
-        uses: cschleiden/replace-token-action@v1
+        uses: cschleiden/replace-tokens@v1
         with:
           tokenPrefix: "_{_"
           tokenSuffix: "_}"
