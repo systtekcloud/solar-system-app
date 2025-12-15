@@ -193,10 +193,42 @@ jobs:
         with:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBECONFIG }}
-          # context: ${{ secrets.KUBECONTEXT }}
+          # context: ${{ vars.KUBECONTEXT }}
+
+      - name: Debug kubeconfig target
+        run: |
+          set -e
+          kubectl config current-context || true
+          kubectl config get-contexts || true
+          echo "API server:"
+          kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
+          echo "DNS check (from API server host):"
+          HOST=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed -E 's#https?://##' | cut -d: -f1)
+          getent hosts "$HOST" || true
 
       - name: Fetch Kubernetes Cluster Details
         run: |
           kubectl version -short
           echo -------------------------------
           kubectl get nodes
+
+      - name: Save Nginx Ingress Controller IP as GITHUB Environment Variable
+        run: |
+          export INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{items[0].status.loadBalancer.ingress[0].ip}')
+          echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
+
+      - name: Replace Token in Manifest Files
+        uses: cschleiden/replace-token-action@v1
+        with:
+          tokenPrefix: "_{_"
+          tokenSuffix: "_}"
+          files: '["apps/solar-system-app/kubernetes/development/*.yaml"]'
+        env:
+          NAMESPACE: ${{ vars.NAMESPACE }}
+          REPLICAS: ${{ vars.REPLICAS }}
+          IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
+          INGRESS_IP: ${{ env.INGRESS_IP }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f apps/solar-system-app/kubernetes/development/*.yaml

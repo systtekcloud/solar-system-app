@@ -17,13 +17,13 @@ spec:
         app: solar-system
     spec:
       containers:
-      - image: ${K8S_IMAGE}
-        imagePullPolicy: Always
-        name: solar-system
-        ports:
-        - containerPort: 3000
-          name: http
-          protocol: TCP
-        envFrom:
-        - secretRef:
-            name: mongo-db-creds
+        - image: ${IMAGE}
+          imagePullPolicy: Always
+          name: solar-system
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: mongo-db-creds
