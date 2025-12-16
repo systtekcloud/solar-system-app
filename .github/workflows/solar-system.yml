@@ -222,6 +222,12 @@ jobs:
           echo "Runner Tailscale Status:"
           tailscale status || true
 
+      - name: Tailscale ping workstation
+        run: |
+          set -e
+          echo "Pinging workstation via tailscale:"
+          tailscale ping -c 3 ${{ secrets.KIND_TS_IP }}
+
       - name: Connectivity check to workstation API port
         run: |
           set -e
