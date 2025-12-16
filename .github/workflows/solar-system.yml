@@ -241,6 +241,13 @@ jobs:
       #     CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
       #     kubectl config set-cluster "$CLUSTER_NAME" --insecure-skip-tls-verify=true
 
+      - name: Set Kubeconfig
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+          # context: ${{ vars.KUBECONTEXT }}
+
       - name: Patch kubeconfig for Tailscale endpoint (and skip TLS verify)
         run: |
           set -e
@@ -248,13 +255,6 @@ jobs:
           CLUSTER="$(kubectl config view --minify -o jsonpath='{.contexts[0].context.cluster}')"
           kubectl config set-cluster "$CLUSTER" --server="https://${{ secrets.KIND_TS_IP }}:6450"
           kubectl config set-cluster "$CLUSTER" --insecure-skip-tls-verify=true
-
-      - name: Set Kubeconfig
-        uses: azure/k8s-set-context@v4
-        with:
-          method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
-          # context: ${{ vars.KUBECONTEXT }}
 
       - name: Fetch Kubernetes Cluster Details
         run: |
