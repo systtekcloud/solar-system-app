@@ -186,25 +186,18 @@ jobs:
       - name: install kubectl CLI
         uses: azure/setup-kubectl@v4
         with:
-          version: "v1.32.0"
+          version: "v1.34.2"
 
-      - name: Set Kubeconfig
-        uses: azure/k8s-set-context@v4
-        with:
-          method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
-          # context: ${{ vars.KUBECONTEXT }}
-
-      - name: Debug kubeconfig target
-        run: |
-          set -e
-          kubectl config current-context || true
-          kubectl config get-contexts || true
-          echo "API server:"
-          kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
-          echo "DNS check (from API server host):"
-          HOST=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed -E 's#https?://##' | cut -d: -f1)
-          getent hosts "$HOST" || true
+      # - name: Debug kubeconfig target
+      #   run: |
+      #     set -e
+      #     kubectl config current-context || true
+      #     kubectl config get-contexts || true
+      #     echo "API server:"
+      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
+      #     echo "DNS check (from API server host):"
+      #     HOST=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed -E 's#https?://##' | cut -d: -f1)
+      #     getent hosts "$HOST" || true
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
@@ -213,45 +206,52 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Debug Tailscale
-        run: |
-          set -e
-          tailscale version
-          echo "Runner Tailscale IPs:"
-          tailscale ip -4 || true
-          echo "Runner Tailscale Status:"
-          tailscale status || true
+      # - name: Debug Tailscale
+      #   run: |
+      #     set -e
+      #     tailscale version
+      #     echo "Runner Tailscale IPs:"
+      #     tailscale ip -4 || true
+      #     echo "Runner Tailscale Status:"
+      #     tailscale status || true
 
-      - name: Tailscale ping workstation
-        run: |
-          set -e
-          echo "Pinging workstation via tailscale:"
-          tailscale ping -c 3 ${{ secrets.KIND_TS_IP }}
+      # - name: Tailscale ping workstation
+      #   run: |
+      #     set -e
+      #     echo "Pinging workstation via tailscale:"
+      #     tailscale ping -c 3 ${{ secrets.KIND_TS_IP }}
 
-      - name: Connectivity check to workstation API port
-        run: |
-          set -e
-          echo "Testing TCP connectivity to ${{ secrets.KIND_TS_IP }}:6450"
-          timeout 5 bash -lc "cat < /dev/null > /dev/tcp/${{ secrets.KIND_TS_IP }}/6450" && echo "OK: port reachable" || (echo "FAIL: port not reachable" && exit 1)
+      # - name: Connectivity check to workstation API port
+      #   run: |
+      #     set -e
+      #     echo "Testing TCP connectivity to ${{ secrets.KIND_TS_IP }}:6450"
+      #     timeout 5 bash -lc "cat < /dev/null > /dev/tcp/${{ secrets.KIND_TS_IP }}/6450" && echo "OK: port reachable" || (echo "FAIL: port not reachable" && exit 1)
 
-      - name: Patch kubeconfig to Tailscale endpoint
-        run: |
-          set -e
-          CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
-          kubectl config set-cluster "$CLUSTER_NAME" --server="https://${{ secrets.KIND_TS_IP }}:6450"
-          echo "API server:"
-          kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
+      # - name: Patch kubeconfig to Tailscale endpoint
+      #   run: |
+      #     set -e
+      #     CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
+      #     kubectl config set-cluster "$CLUSTER_NAME" --server="https://${{ secrets.KIND_TS_IP }}:6450"
+      #     echo "API server:"
+      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
 
-      - name: TEMP - Skip TLS verify (validation only)
-        run: |
-          set -e
-          CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
-          kubectl config set-cluster "$CLUSTER_NAME" --insecure-skip-tls-verify=true
+      # - name: TEMP - Skip TLS verify (validation only)
+      #   run: |
+      #     set -e
+      #     CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
+      #     kubectl config set-cluster "$CLUSTER_NAME" --insecure-skip-tls-verify=true
+
+      - name: Set Kubeconfig
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+          # context: ${{ vars.KUBECONTEXT }}
 
       - name: Fetch Kubernetes Cluster Details
         run: |
-          kubectl version -short
-          echo -------------------------------
+          set -e
+          kubectl version --client
           kubectl get nodes
 
       - name: Save Nginx Ingress Controller IP as GITHUB Environment Variable
