@@ -234,6 +234,20 @@ jobs:
           echo "Testing TCP connectivity to ${{ secrets.KIND_TS_IP }}:6450"
           timeout 5 bash -lc "cat < /dev/null > /dev/tcp/${{ secrets.KIND_TS_IP }}/6450" && echo "OK: port reachable" || (echo "FAIL: port not reachable" && exit 1)
 
+      - name: Patch kubeconfig to Tailscale endpoint
+        run: |
+          set -e
+          CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
+          kubectl config set-cluster "$CLUSTER_NAME" --server="https://${{ secrets.KIND_TS_IP }}:6450"
+          echo "API server:"
+          kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
+
+      - name: TEMP - Skip TLS verify (validation only)
+        run: |
+          set -e
+          CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
+          kubectl config set-cluster "$CLUSTER_NAME" --insecure-skip-tls-verify=true
+
       - name: Fetch Kubernetes Cluster Details
         run: |
           kubectl version -short

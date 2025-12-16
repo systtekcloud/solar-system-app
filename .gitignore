@@ -37,3 +37,5 @@ Thumbs.db
 solar-system.png
 .talismanrc
 exported.json
+
+kubeconfig*
