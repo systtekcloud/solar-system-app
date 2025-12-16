@@ -177,7 +177,7 @@ jobs:
 
   dev-deploy:
     needs: [docker]
-    name: SetUp Kubectl
+    name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -206,6 +206,19 @@ jobs:
           HOST=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed -E 's#https?://##' | cut -d: -f1)
           getent hosts "$HOST" || true
 
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Connectivity check to workstation API port
+        run: |
+          set -e
+          echo "Testing TCP connectivity to ${{ secrets.KIND_TS_IP }}:6450"
+          timeout 5 bash -lc "cat < /dev/null > /dev/tcp/${{ secrets.KIND_TS_IP }}/6450" && echo "OK: port reachable" || (echo "FAIL: port not reachable" && exit 1)
+
       - name: Fetch Kubernetes Cluster Details
         run: |
           kubectl version -short
@@ -229,6 +242,6 @@ jobs:
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
           INGRESS_IP: ${{ env.INGRESS_IP }}
 
-      - name: Deploy to Kubernetes
+      - name: Apply manifests to Kubernetes
         run: |
           kubectl apply -f apps/solar-system-app/kubernetes/development/*.yaml
