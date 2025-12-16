@@ -213,6 +213,15 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
+      - name: Debug Tailscale
+        run: |
+          set -e
+          tailscale version
+          echo "Runner Tailscale IPs:"
+          tailscale ip -4 || true
+          echo "Runner Tailscale Status:"
+          tailscale status || true
+
       - name: Connectivity check to workstation API port
         run: |
           set -e
