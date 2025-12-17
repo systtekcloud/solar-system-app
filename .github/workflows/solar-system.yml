@@ -271,8 +271,8 @@ jobs:
         uses: cschleiden/replace-tokens@v1
         with:
           tokenPrefix: "_{_"
-          tokenSuffix: "_}"
-          files: '["apps/solar-system-app/kubernetes/development/*.yaml"]'
+          tokenSuffix: "_}_"
+          files: '["kubernetes/development/*.yaml"]'
         env:
           NAMESPACE: ${{ vars.NAMESPACE }}
           REPLICAS: ${{ vars.REPLICAS }}
@@ -300,6 +300,7 @@ jobs:
 
       - name: Apply manifests to Kubernetes
         run: |
+          set -e
           ls -la kubernetes/development/
           kubectl apply -f kubernetes/development/
 
