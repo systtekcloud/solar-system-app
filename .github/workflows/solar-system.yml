@@ -300,7 +300,8 @@ jobs:
 
       - name: Apply manifests to Kubernetes
         run: |
-          kubectl apply -f kubernetes/development/*.yaml
+          ls -la kubernetes/development/
+          kubectl apply -f kubernetes/development/
 
   integration-tetsing:
     name: Dev Integration Testing
