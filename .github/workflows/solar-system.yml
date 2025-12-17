@@ -309,4 +309,4 @@ jobs:
           APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
         run: |
           echo "Testing URL: ${{ env.APP_INGRESS_URL }}"
-          curl -s ${{ env.APP_INGRESS_URL }}/live -s -k | jq -r .status | grep -i live
+          curl -s -k ${{ env.APP_INGRESS_URL }}/live | jq -r .status | grep -i live
