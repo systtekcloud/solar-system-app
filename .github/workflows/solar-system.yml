@@ -278,6 +278,15 @@ jobs:
           REPLICAS: ${{ vars.REPLICAS }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
           INGRESS_IP: ${{ env.INGRESS_IP }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+
+      - name: Create Namespace
+        run: |
+          if kubectl get namespace ${{ vars.NAMESPACE }}; then
+            echo "Namespace ${{ vars.NAMESPACE }} already exists"
+          else
+            kubectl create namespace ${{ vars.NAMESPACE }}
+          fi
 
       - name: Create MongoDB Secret
         run: |
@@ -292,3 +301,11 @@ jobs:
       - name: Apply manifests to Kubernetes
         run: |
           kubectl apply -f kubernetes/development/*.yaml
+
+  integration-tetsing:
+    name: Dev Integration Testing
+    needs: [dev-deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
