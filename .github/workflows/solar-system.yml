@@ -179,6 +179,9 @@ jobs:
     needs: [docker]
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
+    outputs:
+      APP_INGRESS_HOST: ${{ steps.set-app-ingress-host.outputs.APP_INGRESS_HOST }}
+      APP_INGRESS_URL: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -187,17 +190,6 @@ jobs:
         uses: azure/setup-kubectl@v4
         with:
           version: "v1.34.2"
-
-      # - name: Debug kubeconfig target
-      #   run: |
-      #     set -e
-      #     kubectl config current-context || true
-      #     kubectl config get-contexts || true
-      #     echo "API server:"
-      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
-      #     echo "DNS check (from API server host):"
-      #     HOST=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed -E 's#https?://##' | cut -d: -f1)
-      #     getent hosts "$HOST" || true
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
@@ -226,20 +218,6 @@ jobs:
       #     set -e
       #     echo "Testing TCP connectivity to ${{ secrets.KIND_TS_IP }}:6450"
       #     timeout 5 bash -lc "cat < /dev/null > /dev/tcp/${{ secrets.KIND_TS_IP }}/6450" && echo "OK: port reachable" || (echo "FAIL: port not reachable" && exit 1)
-
-      # - name: Patch kubeconfig to Tailscale endpoint
-      #   run: |
-      #     set -e
-      #     CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
-      #     kubectl config set-cluster "$CLUSTER_NAME" --server="https://${{ secrets.KIND_TS_IP }}:6450"
-      #     echo "API server:"
-      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'; echo
-
-      # - name: TEMP - Skip TLS verify (validation only)
-      #   run: |
-      #     set -e
-      #     CLUSTER_NAME="$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')"
-      #     kubectl config set-cluster "$CLUSTER_NAME" --insecure-skip-tls-verify=true
 
       - name: Set Kubeconfig
         uses: azure/k8s-set-context@v4
@@ -304,6 +282,20 @@ jobs:
           ls -la kubernetes/development/
           kubectl apply -f kubernetes/development/
 
+      - name: Set App Ingress Host
+        id: set-app-ingress-host
+        run: |
+          export APP_INGRESS_HOST=$(kubectl get ingress -n ${{ vars.NAMESPACE }} solar-system -o jsonpath='{.spec.tls[0].hosts[0]}')
+          echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_ENV
+          echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_OUTPUT
+
+      - name: Set App Ingress URL
+        id: set-app-ingress-url
+        run: |
+          export APP_INGRESS_URL="https://${{ env.APP_INGRESS_HOST }}"
+          echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_ENV
+          echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
+
   integration-tetsing:
     name: Dev Integration Testing
     needs: [dev-deploy]
@@ -311,3 +303,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Test URL Output using CURL and JQ
+        env:
+          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
+        run: |
+          echo "Testing URL: ${{ env.APP_INGRESS_URL }}"
+          curl -s ${{ env.APP_INGRESS_URL }}/live -s -k | jq -r .status | grep -i live
