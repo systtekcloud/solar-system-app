@@ -182,7 +182,7 @@ jobs:
     outputs:
       APP_INGRESS_HOST: ${{ steps.set-app-ingress-host.outputs.APP_INGRESS_HOST }}
       APP_INGRESS_URL: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
-      # INGRESS_IP: ${{ steps.set-ingress-ip.outputs.INGRESS_IP }}
+      INGRESS_IP: ${{ steps.set-ingress-ip.outputs.INGRESS_IP }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -198,21 +198,21 @@ jobs:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBECONFIG }}
           # context: ${{ vars.KUBECONTEXT }}
-
-      # - name: Patch kubeconfig for Tailscale endpoint (and skip TLS verify)
-      #   run: |
-      #     set -e
-      #     kubectl config use-context kind-blockchain-cluster
-      #     CLUSTER="$(kubectl config view --minify -o jsonpath='{.contexts[0].context.cluster}')"
-      #     kubectl config set-cluster "$CLUSTER" --server="https://${{ secrets.KIND_TS_IP }}:6450"
-      #     kubectl config set-cluster "$CLUSTER" --insecure-skip-tls-verify=true
-
+      
       - name: Fetch Kubernetes Cluster Details
         run: |
           set -e
           kubectl version --client
           kubectl get nodes
-
+      
+      - name: Save Nginx Ingress Controller IP as GITHUB Environment Variable
+        id: set-ingress-ip
+        run: |
+          export INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
+          echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_OUTPUT
+      
+      
       - name: Replace Token in Manifest Files
         uses: cschleiden/replace-tokens@v1
         with:
@@ -250,13 +250,6 @@ jobs:
           ls -la kubernetes/development/
           kubectl apply -f kubernetes/development/
 
-      # - name: Save Nginx Ingress Controller IP as GITHUB Environment Variable
-      #   id: set-ingress-ip
-      #   run: |
-      #     export INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      #     echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
-      #     echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_OUTPUT
-
       - name: Set App Ingress Host
         id: set-app-ingress-host
         run: |
@@ -272,15 +265,6 @@ jobs:
           echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
           echo "Using Ingress Host for tests: $APP_INGRESS_URL"
 
-      # - name: Set App Ingress Base URL (via Tailscale + LoadBalancer IP)
-      #   id: set-app-ingress-url
-      #   run: |
-      #     set -e
-      #     # Using the MetalLB LoadBalancer IP directly via Tailscale subnet routes
-      #     APP_INGRESS_URL="https://${INGRESS_IP}"
-      #     echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
-      #     echo "Using LoadBalancer IP for tests: $APP_INGRESS_URL"
-
   integration-testing:
     name: Dev Integration Testing
     needs: [dev-deploy]
@@ -290,6 +274,7 @@ jobs:
         run: |
           echo "APP_INGRESS_URL='${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}'"
           echo "APP_INGRESS_HOST='${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}'"
+          echo "INGRESS_IP='${{ needs.dev-deploy.outputs.INGRESS_IP }}'"
 
       - name: Test Application via LoadBalancer IP
         env:
