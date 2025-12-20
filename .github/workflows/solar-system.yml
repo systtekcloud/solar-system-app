@@ -300,14 +300,19 @@ jobs:
         id: set-app-ingress-url
         run: |
           set -e
-          APP_BASE_URL="http://${{ secrets.KIND_TS_IP }}:9190"
-          echo "APP_INGRESS_URL=$APP_BASE_URL" >> $GITHUB_OUTPUT
+          APP_INGRESS_URL="http://${{ secrets.KIND_TS_IP }}:9190"
+          echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
 
   integration-testing:
     name: Dev Integration Testing
     needs: [dev-deploy]
     runs-on: ubuntu-latest
     steps:
+      - name: Debug received outputs
+        run: |
+          echo "URL='${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}'"
+          echo "HOST='${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}'"
+          
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
