@@ -329,7 +329,7 @@ jobs:
 
       - name: Test URL Output using CURL and JQ (via 9190)
         env:
-          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
+          APP_INGRESS_URL: "http://${{ secrets.KIND_TS_IP }}:9190"
           APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}
         run: |
           set -euo pipefail
