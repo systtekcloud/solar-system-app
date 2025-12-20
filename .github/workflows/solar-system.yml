@@ -289,14 +289,21 @@ jobs:
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_ENV
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_OUTPUT
 
-      - name: Set App Ingress URL
+      # - name: Set App Ingress URL
+      #   id: set-app-ingress-url
+      #   run: |
+      #     export APP_INGRESS_URL="https://${{ env.APP_INGRESS_HOST }}"
+      #     echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_ENV
+      #     echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
+
+      - name: Set App Ingress Base URL (via Tailscale + hostPort)
         id: set-app-ingress-url
         run: |
-          export APP_INGRESS_URL="https://${{ env.APP_INGRESS_HOST }}"
-          echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_ENV
-          echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
+          set -e
+          APP_BASE_URL="http://${{ secrets.KIND_TS_IP }}:9190"
+          echo "APP_INGRESS_URL=$APP_BASE_URL" >> $GITHUB_OUTPUT
 
-  integration-tetsing:
+  integration-testing:
     name: Dev Integration Testing
     needs: [dev-deploy]
     runs-on: ubuntu-latest
@@ -308,9 +315,23 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Test URL Output using CURL and JQ
+      # - name: Test URL Output using CURL and JQ
+      #   env:
+      #     APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
+      #   run: |
+      #     echo "Testing URL: ${{ env.APP_INGRESS_URL }}"
+      #     curl -s -k ${{ env.APP_INGRESS_URL }}/live | jq -r .status | grep -i live
+
+      - name: Test URL Output using CURL and JQ (via 9190)
         env:
           APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
+          APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}
         run: |
-          echo "Testing URL: ${{ env.APP_INGRESS_URL }}"
-          curl -s -k ${{ env.APP_INGRESS_URL }}/live | jq -r .status | grep -i live
+          set -euo pipefail
+          echo "Testing URL: ${APP_INGRESS_URL}/live"
+          echo "Using Host header: ${APP_INGRESS_HOST}"
+
+          curl -sS --fail \
+            -H "Host: ${APP_INGRESS_HOST}" \
+            "${APP_INGRESS_URL}/live" \
+            | jq -r .status | grep -i live
