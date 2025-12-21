@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: solar-system-_{_NAMESPACE_}_._INGRESS_IP_}_.nip.io
+    - host: solar-system-_{_NAMESPACE_}_._{_INGRESS_IP_}_.nip.io
       http:
         paths:
           - backend:
