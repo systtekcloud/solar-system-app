@@ -177,7 +177,7 @@ jobs:
 
   dev-deploy:
     needs: [docker]
-    name: Deploy to Kubernetes
+    name: Deploy to Dev Environment
     environment:
       name: dev
       url: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
@@ -270,7 +270,7 @@ jobs:
 
   prod-deploy:
     needs: [docker]
-    name: Deploy to Kubernetes
+    name: Deploy to Prod Environment
     environment:
       name: prod
       url: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
