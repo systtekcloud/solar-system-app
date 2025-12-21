@@ -178,6 +178,9 @@ jobs:
   dev-deploy:
     needs: [docker]
     name: Deploy to Kubernetes
+    environment:
+      name: development
+      url: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
     runs-on: self-hosted
     outputs:
       APP_INGRESS_HOST: ${{ steps.set-app-ingress-host.outputs.APP_INGRESS_HOST }}
