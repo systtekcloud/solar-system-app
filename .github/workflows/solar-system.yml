@@ -176,6 +176,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/solar-system-app:${{ github.sha }}
 
   dev-deploy:
+    if: contains(github.ref, 'dev') || github.ref == 'feature/*'
     needs: [docker]
     name: Deploy to Dev Environment
     environment:
@@ -268,11 +269,55 @@ jobs:
           echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
           echo "Using Ingress Host for tests: $APP_INGRESS_URL"
 
-  prod-deploy:
+  dev-integration-testing:
+    if: contains(github.ref, 'dev') || github.ref == 'feature/*'
+    name: Dev Integration Testing
+    needs: [dev-deploy]
+    runs-on: self-hosted
+    steps:
+      - name: Debug received outputs
+        run: |
+          echo "APP_INGRESS_URL='${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}'"
+          echo "APP_INGRESS_HOST='${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}'"
+          echo "INGRESS_IP='${{ needs.dev-deploy.outputs.INGRESS_IP }}'"
+
+      - name: Test Application via LoadBalancer IP
+        env:
+          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
+          APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}
+        run: |
+          set -euo pipefail
+          echo "Testing URL: ${APP_INGRESS_URL}/live"
+          echo "Using Host header: ${APP_INGRESS_HOST}"
+
+          # Wait for service to be ready (max 60 seconds)
+          echo "Waiting for service to be ready..."
+          for i in {1..12}; do
+            if curl -sS --fail --max-time 5 -k \
+              -H "Host: ${APP_INGRESS_HOST}" \
+              "${APP_INGRESS_URL}/live" 2>/dev/null; then
+              echo "✅ Service is ready!"
+              break
+            fi
+            echo "Attempt $i/12: Service not ready yet, waiting..."
+            sleep 5
+          done
+
+          # Final test with verbose output
+          echo -e "\n=== Running final test ==="
+          curl -sS --fail -k -v \
+            -H "Host: ${APP_INGRESS_HOST}" \
+            "${APP_INGRESS_URL}/live" \
+            | jq -r .status | grep -i live
+
+          echo "✅ Integration test passed!"
+
+  pro-deploy:
+    if: github.ref == 'refs/head/main'
     needs: [docker]
-    name: Deploy to Prod Environment
+    name: Deploy to Pro Environment
     environment:
-      name: prod
+      name: pro
       url: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
     runs-on: self-hosted
     outputs:
@@ -361,16 +406,17 @@ jobs:
           echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
           echo "Using Ingress Host for tests: $APP_INGRESS_URL"
 
-  integration-testing:
-    name: Dev Integration Testing
-    needs: [dev-deploy]
+  pro-integration-testing:
+    if: github.ref == 'refs/heads/main'
+    name: Pro Integration Testing
+    needs: [pro-deploy]
     runs-on: self-hosted
     steps:
       - name: Debug received outputs
         run: |
-          echo "APP_INGRESS_URL='${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}'"
-          echo "APP_INGRESS_HOST='${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}'"
-          echo "INGRESS_IP='${{ needs.dev-deploy.outputs.INGRESS_IP }}'"
+          echo "APP_INGRESS_URL='${{ needs.pro-deploy.outputs.APP_INGRESS_URL }}'"
+          echo "APP_INGRESS_HOST='${{ needs.pro-deploy.outputs.APP_INGRESS_HOST }}'"
+          echo "INGRESS_IP='${{ needs.pro-deploy.outputs.INGRESS_IP }}'"
 
       - name: Test Application via LoadBalancer IP
         env:
