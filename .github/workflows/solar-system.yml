@@ -313,7 +313,7 @@ jobs:
           echo "✅ Integration test passed!"
 
   pro-deploy:
-    if: github.ref == 'refs/head/main'
+    if: github.ref == 'refs/heads/main'
     needs: [docker]
     name: Deploy to Pro Environment
     environment:
@@ -420,8 +420,8 @@ jobs:
 
       - name: Test Application via LoadBalancer IP
         env:
-          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
-          APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}
+          APP_INGRESS_URL: ${{ needs.pro-deploy.outputs.APP_INGRESS_URL }}
+          APP_INGRESS_HOST: ${{ needs.pro-deploy.outputs.APP_INGRESS_HOST }}
         run: |
           set -euo pipefail
           echo "Testing URL: ${APP_INGRESS_URL}/live"
