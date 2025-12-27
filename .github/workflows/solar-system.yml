@@ -110,7 +110,7 @@ jobs:
       - name: Download Mocha Test Artifact
         uses: actions/download-artifact@v4
         with:
-          name: Mocha-Test-Result-${{ matrix.nodejs_version }}
+          name: Mocha-Test-Result
 
       - name: Download Code Coverage Report
         uses: actions/download-artifact@v4
@@ -123,8 +123,6 @@ jobs:
           mkdir reports-${{ github.sha }}
           mv cobertura-coverage.xml reports-${{ github.sha }}/
           mv test-results.xml reports-${{ github.sha }}/
-          cp Mocha-Test-Result-${{ matrix.nodejs_version }}/*.xml reports-${{ github.sha }}
-          cp Code-Coverage-Report/*.xml reports-${{ github.sha }}
           ls -ltr reports-${{ github.sha }}/
 
       - name: Upload Reports to S3
