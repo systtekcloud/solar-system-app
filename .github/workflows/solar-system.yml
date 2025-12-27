@@ -178,8 +178,15 @@ jobs:
   dev-deploy:
     if: contains(github.ref, 'dev') || github.ref == 'feature/*'
     needs: [docker]
-    name: Deploy to Dev Environment
     uses: ./.github/workflows/reuse-deployment.yml
+    with:
+      environment: ${{ vars.ENVIRONMENT }}
+      namespace: ${{ vars.NAMESPACE }}
+      replicas: ${{ vars.REPLICAS }}
+      kubectl-version: "v1.34.2"
+      ingress-ip: ${{ vars.INGRESS_IP }}
+      ingress-host: ${{ vars.INGRESS_HOST }}
+      k8s-manifests-path: "kubernetes"
     secrets:
       k8s-kubeconfigs: ${{ secrets.KUBECONFIG }}
       mongo-uri: ${{ secrets.MONGO_URI }}
@@ -232,8 +239,16 @@ jobs:
   pro-deploy:
     if: github.ref == 'refs/heads/main'
     needs: [docker]
-    name: Deploy to Pro Environment
     uses: ./.github/workflows/reuse-deployment.yml
+    with:
+      environment: ${{ vars.ENVIRONMENT }}
+      namespace: ${{ vars.NAMESPACE }}
+      replicas: ${{ vars.REPLICAS }}
+      kubectl-version: "v1.34.2"
+      ingress-ip: ${{ vars.INGRESS_IP }}
+      ingress-host: ${{ vars.INGRESS_HOST }}
+      k8s-manifests-path: "kubernetes"
+
     secrets:
       k8s-kubeconfigs: ${{ secrets.KUBECONFIG }}
       mongo-uri: ${{ secrets.MONGO_URI }}

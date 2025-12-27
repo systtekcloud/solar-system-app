@@ -2,6 +2,37 @@ name: Deployment - Reusable Workflow
 
 on: 
   workflow_call:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        type: string
+      ingress-ip:
+        description: "Ingress IP"
+        required: true
+        type: string
+      ingress-host:
+        description: "Ingress Host"
+        required: true
+        type: string
+      kubectl-version:
+        description: "Kubectl version"
+        default: "v1.34.2"
+        required: true
+        type: string
+      namespace:
+        description: "Namespace"
+        required: true
+        type: string
+      replicas:
+        description: "Replicas"
+        required: true
+        type: string
+      k8s-manifests-path:
+        description: "K8s manifests path"
+        default: "kubernetes"
+        required: true
+        type: string
     secrets:
       k8s-kubeconfigs:
         required: true
@@ -11,16 +42,12 @@ on:
         required: true
       mongo-password:
         required: true
-      # dockerhub-username:
-      #   required: true
-      # dockerhub-password:
-      #   required: true
 
 jobs:
   reuse-deploy:
-    name: Deploy to Dev Environment
+    name: Deploy to ${{ inputs.environment }} Environment
     environment:
-      name: dev
+      name: ${{ inputs.environment }}
       url: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
     runs-on: self-hosted
     outputs:
@@ -34,7 +61,7 @@ jobs:
       - name: install kubectl CLI
         uses: azure/setup-kubectl@v4
         with:
-          version: "v1.34.2"
+          version: ${{ inputs.kubectl-version }}
 
       - name: Set Kubeconfig
         uses: azure/k8s-set-context@v4
@@ -62,12 +89,12 @@ jobs:
         with:
           tokenPrefix: "_{_"
           tokenSuffix: "_}_"
-          files: '["kubernetes/dev/*.yaml"]'
+          files: '["${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/*.yaml"]'
         env:
-          NAMESPACE: ${{ vars.NAMESPACE }}
-          REPLICAS: ${{ vars.REPLICAS }}
+          NAMESPACE: ${{ inputs.namespace }}
+          REPLICAS: ${{ inputs.replicas }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
-          INGRESS_IP: ${{ env.INGRESS_IP }}
+          INGRESS_IP: ${{ inputs.ingress-ip }}
           MONGO_URI: ${{ secrets.mongo-uri }}
 
       - name: Create Namespace
@@ -91,20 +118,20 @@ jobs:
       - name: Apply manifests to Kubernetes
         run: |
           set -e
-          ls -la kubernetes/dev/
-          kubectl apply -f kubernetes/dev/
+          ls -la ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/ingress.yaml
+          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/ingress.yaml
 
       - name: Set App Ingress Host
         id: set-app-ingress-host
         run: |
-          export APP_INGRESS_HOST=$(kubectl get ingress -n ${{ vars.NAMESPACE }} solar-system -o jsonpath='{.spec.tls[0].hosts[0]}')
+          export APP_INGRESS_HOST=$(kubectl get ingress -n ${{ inputs.namespace }} solar-system -o jsonpath='{.spec.tls[0].hosts[0]}')
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_ENV
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_OUTPUT
 
       - name: Set App Ingress URL
         id: set-app-ingress-url
         run: |
-          export APP_INGRESS_URL="https://${{ env.APP_INGRESS_HOST }}"
+          export APP_INGRESS_URL="https://${{ inputs.ingress-host }}"
           echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_ENV
           echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
           echo "Using Ingress Host for tests: $APP_INGRESS_URL"
