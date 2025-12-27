@@ -184,8 +184,6 @@ jobs:
       namespace: ${{ vars.NAMESPACE }}
       replicas: ${{ vars.REPLICAS }}
       kubectl-version: "v1.34.2"
-      ingress-ip: ${{ vars.INGRESS_IP }}
-      ingress-host: ${{ vars.INGRESS_HOST }}
       k8s-manifests-path: "kubernetes"
     secrets:
       k8s-kubeconfigs: ${{ secrets.KUBECONFIG }}
@@ -201,14 +199,14 @@ jobs:
     steps:
       - name: Debug received outputs
         run: |
-          echo "APP_INGRESS_URL='${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}'"
-          echo "APP_INGRESS_HOST='${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}'"
-          echo "INGRESS_IP='${{ needs.dev-deploy.outputs.INGRESS_IP }}'"
+          echo "APP_INGRESS_URL='${{ needs.dev-deploy.outputs.application-url }}'"
+          echo "APP_INGRESS_HOST='${{ needs.dev-deploy.outputs.application-host }}'"
+          echo "INGRESS_IP='${{ needs.dev-deploy.outputs.ingress-ip }}'"
 
       - name: Test Application via LoadBalancer IP
         env:
-          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.APP_INGRESS_URL }}
-          APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.APP_INGRESS_HOST }}
+          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.application-url }}
+          APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.application-host }}
         run: |
           set -euo pipefail
           echo "Testing URL: ${APP_INGRESS_URL}/live"
@@ -245,8 +243,6 @@ jobs:
       namespace: ${{ vars.NAMESPACE }}
       replicas: ${{ vars.REPLICAS }}
       kubectl-version: "v1.34.2"
-      ingress-ip: ${{ vars.INGRESS_IP }}
-      ingress-host: ${{ vars.INGRESS_HOST }}
       k8s-manifests-path: "kubernetes"
 
     secrets:
@@ -263,14 +259,14 @@ jobs:
     steps:
       - name: Debug received outputs
         run: |
-          echo "APP_INGRESS_URL='${{ needs.pro-deploy.outputs.APP_INGRESS_URL }}'"
-          echo "APP_INGRESS_HOST='${{ needs.pro-deploy.outputs.APP_INGRESS_HOST }}'"
-          echo "INGRESS_IP='${{ needs.pro-deploy.outputs.INGRESS_IP }}'"
+          echo "APP_INGRESS_URL='${{ needs.pro-deploy.outputs.application-url }}'"
+          echo "APP_INGRESS_HOST='${{ needs.pro-deploy.outputs.application-host }}'"
+          echo "INGRESS_IP='${{ needs.pro-deploy.outputs.ingress-ip }}'"
 
       - name: Test Application via LoadBalancer IP
         env:
-          APP_INGRESS_URL: ${{ needs.pro-deploy.outputs.APP_INGRESS_URL }}
-          APP_INGRESS_HOST: ${{ needs.pro-deploy.outputs.APP_INGRESS_HOST }}
+          APP_INGRESS_URL: ${{ needs.pro-deploy.outputs.application-url }}
+          APP_INGRESS_HOST: ${{ needs.pro-deploy.outputs.application-host }}
         run: |
           set -euo pipefail
           echo "Testing URL: ${APP_INGRESS_URL}/live"
