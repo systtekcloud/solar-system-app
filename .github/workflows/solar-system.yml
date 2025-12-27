@@ -180,6 +180,11 @@ jobs:
     needs: [docker]
     name: Deploy to Dev Environment
     uses: ./.github/workflows/reuse-deployment.yml
+    secrets:
+      k8s-kubeconfigs: ${{ secrets.KUBECONFIG }}
+      mongo-uri: ${{ secrets.MONGO_URI }}
+      mongo-username: ${{ secrets.MONGO_USERNAME }}
+      mongo-password: ${{ secrets.MONGO_PASSWORD }}
 
   dev-integration-testing:
     if: contains(github.ref, 'dev') || github.ref == 'feature/*'
@@ -229,6 +234,11 @@ jobs:
     needs: [docker]
     name: Deploy to Pro Environment
     uses: ./.github/workflows/reuse-deployment.yml
+    secrets:
+      k8s-kubeconfigs: ${{ secrets.KUBECONFIG }}
+      mongo-uri: ${{ secrets.MONGO_URI }}
+      mongo-username: ${{ secrets.MONGO_USERNAME }}
+      mongo-password: ${{ secrets.MONGO_PASSWORD }}
 
   pro-integration-testing:
     if: github.ref == 'refs/heads/main'

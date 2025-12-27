@@ -2,6 +2,19 @@ name: Deployment - Reusable Workflow
 
 on: 
   workflow_call:
+    secrets:
+      k8s-kubeconfigs:
+        required: true
+      mongo-uri:
+        required: true
+      mongo-username:
+        required: true
+      mongo-password:
+        required: true
+      # dockerhub-username:
+      #   required: true
+      # dockerhub-password:
+      #   required: true
 
 jobs:
   reuse-deploy:
@@ -27,7 +40,7 @@ jobs:
         uses: azure/k8s-set-context@v4
         with:
           method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+          kubeconfig: ${{ secrets.k8s-kubeconfigs }}
           # context: ${{ vars.KUBECONTEXT }}
       
       - name: Fetch Kubernetes Cluster Details
@@ -55,7 +68,7 @@ jobs:
           REPLICAS: ${{ vars.REPLICAS }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
           INGRESS_IP: ${{ env.INGRESS_IP }}
-          MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGO_URI: ${{ secrets.mongo-uri }}
 
       - name: Create Namespace
         run: |
@@ -68,9 +81,9 @@ jobs:
       - name: Create MongoDB Secret
         run: |
           kubectl -n ${{ vars.NAMESPACE }} create secret generic mongo-db-creds \
-            --from-literal=MONGO_URI=${{ env.MONGO_URI }} \
-            --from-literal=MONGO_USERNAME=${{ secrets.MONGO_USERNAME }} \
-            --from-literal=MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }} \
+            --from-literal=MONGO_URI=${{ secrets.mongo-uri }} \
+            --from-literal=MONGO_USERNAME=${{ secrets.mongo-username }} \
+            --from-literal=MONGO_PASSWORD=${{ secrets.mongo-password }} \
             --save-config \
             --dry-run=client \
             -o yaml | kubectl apply -f -
