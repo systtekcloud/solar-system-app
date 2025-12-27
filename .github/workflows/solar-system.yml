@@ -98,7 +98,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Code-Coverage-Report-${{ matrix.nodejs_version }}
+          name: Code-Coverage-Report
           path: coverage
 
   reports-s3:
@@ -107,23 +107,41 @@ jobs:
     runs-on: self-hosted
     continue-on-error: true
     steps:
-      - name: Download Mocha Test Artifact
+      - name: Download all Mocha test artifacts (matrix)
         uses: actions/download-artifact@v4
         with:
-          name: Mocha-Test-Result-${{ matrix.nodejs_version }}
+          pattern: Mocha-Test-Result-*
+          merge-multiple: true
+          path: artifacts/mocha
 
       - name: Download Code Coverage Report
         uses: actions/download-artifact@v4
         with:
-          name: Code-Coverage-Report-${{ matrix.nodejs_version }}
-      
-      - name: Merge Test Files
+          name: Code-Coverage-Report
+          path: artifacts/coverage
+
+      - name: Merge report files
+        shell: bash
         run: |
-          ls -ltr
-          mkdir reports-${{ github.sha }}
-          mv Mocha-Test-Result-${{ matrix.nodejs_version }}/*.xml reports-${{ github.sha }}/
-          mv Code-Coverage-Report-${{ matrix.nodejs_version }}/*.xml reports-${{ github.sha }}/
-          ls -ltr reports-${{ github.sha }}/
+          set -euo pipefail
+
+          echo "=== Downloaded artifacts tree ==="
+          ls -la
+          find artifacts -maxdepth 4 -type f -print || true
+
+          REPORT_DIR="reports-${GITHUB_SHA}"
+          mkdir -p "${REPORT_DIR}"
+
+          echo "=== Collecting Mocha XML ==="
+          find artifacts/mocha -type f -name "*.xml" -print -exec cp -v {} "${REPORT_DIR}/" \; || true
+
+          echo "=== Collecting Coverage files (common formats) ==="
+          # Copy common coverage outputs if they exist
+          find artifacts/coverage -type f \( -name "*.xml" -o -name "lcov.info" -o -name "*.html" -o -name "*.json" \) \
+            -print -exec cp -v --parents {} "${REPORT_DIR}/" \; || true
+
+          echo "=== Final report dir ==="
+          find "${REPORT_DIR}" -maxdepth 5 -type f -print || true
 
       - name: Upload Reports to S3
         uses: jakejarvis/s3-sync-action@master
@@ -133,12 +151,11 @@ jobs:
           AWS_S3_BUCKET: stk-solar-system-reports
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'eu-west-1'
-          SOURCE_DIR: 'reports-${{ github.sha }}'
-          DEST_DIR: 'reports/${{ github.sha }}'
+          AWS_REGION: "eu-west-1"
+          SOURCE_DIR: "reports-${{ github.sha }}"
+          DEST_DIR: "reports/${{ github.sha }}"
+      
           
-          
-
   docker:
     name: Containerization
     permissions:
