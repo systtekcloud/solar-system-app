@@ -7,14 +7,6 @@ on:
         description: "Environment to deploy to"
         required: true
         type: string
-      ingress-ip:
-        description: "Ingress IP"
-        required: true
-        type: string
-      ingress-host:
-        description: "Ingress Host"
-        required: true
-        type: string
       kubectl-version:
         description: "Kubectl version"
         default: "v1.34.2"
@@ -33,6 +25,16 @@ on:
         default: "kubernetes"
         required: true
         type: string
+    outputs:
+      application-url:
+        description: "Application URL"
+        value: ${{ jobs.reuse-deploy.outputs.APP_INGRESS_URL }}
+      application-host:
+        description: "Application Host"
+        value: ${{ jobs.reuse-deploy.outputs.APP_INGRESS_HOST }}
+      ingress-ip:
+        description: "Ingress IP"
+        value: ${{ jobs.reuse-deploy.outputs.INGRESS_IP }}
     secrets:
       k8s-kubeconfigs:
         required: true
@@ -94,20 +96,25 @@ jobs:
           NAMESPACE: ${{ inputs.namespace }}
           REPLICAS: ${{ inputs.replicas }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
-          INGRESS_IP: ${{ inputs.ingress-ip }}
+          INGRESS_IP: ${{ steps.set-ingress-ip.outputs.INGRESS_IP }}
           MONGO_URI: ${{ secrets.mongo-uri }}
 
       - name: Create Namespace
         run: |
-          if kubectl get namespace ${{ vars.NAMESPACE }}; then
-            echo "Namespace ${{ vars.NAMESPACE }} already exists"
+          if kubectl get namespace ${{ inputs.namespace }}; then
+            echo "Namespace ${{ inputs.namespace }} already exists"
           else
-            kubectl create namespace ${{ vars.NAMESPACE }}
+            kubectl create namespace ${{ inputs.namespace }}
           fi
+      
+      - name: Debug namespace
+        run: |
+          echo "inputs.namespace='${{ inputs.namespace }}'"
+          echo "vars.NAMESPACE='${{ vars.NAMESPACE }}'"
 
       - name: Create MongoDB Secret
         run: |
-          kubectl -n ${{ vars.NAMESPACE }} create secret generic mongo-db-creds \
+          kubectl -n ${{ inputs.namespace }} create secret generic mongo-db-creds \
             --from-literal=MONGO_URI=${{ secrets.mongo-uri }} \
             --from-literal=MONGO_USERNAME=${{ secrets.mongo-username }} \
             --from-literal=MONGO_PASSWORD=${{ secrets.mongo-password }} \
@@ -131,7 +138,7 @@ jobs:
       - name: Set App Ingress URL
         id: set-app-ingress-url
         run: |
-          export APP_INGRESS_URL="https://${{ inputs.ingress-host }}"
+          export APP_INGRESS_URL="https://${{ steps.set-app-ingress-host.outputs.APP_INGRESS_HOST }}"
           echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_ENV
           echo "APP_INGRESS_URL=$APP_INGRESS_URL" >> $GITHUB_OUTPUT
           echo "Using Ingress Host for tests: $APP_INGRESS_URL"
