@@ -176,13 +176,13 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/solar-system-app:${{ github.sha }}
 
   dev-deploy:
-    if: contains(github.ref, 'dev') || github.ref == 'feature/*'
+    if: contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/feature/')
     needs: [docker]
     uses: ./.github/workflows/reuse-deployment.yml
     with:
-      environment: ${{ vars.ENVIRONMENT }}
-      namespace: ${{ vars.NAMESPACE }}
-      replicas: ${{ vars.REPLICAS }}
+      environment: dev
+      namespace: dev
+      replicas: "1"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
     secrets:
@@ -192,7 +192,7 @@ jobs:
       mongo-password: ${{ secrets.MONGO_PASSWORD }}
 
   dev-integration-testing:
-    if: contains(github.ref, 'dev') || github.ref == 'feature/*'
+    if: contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/feature/')
     name: Dev Integration Testing
     needs: [dev-deploy]
     runs-on: self-hosted
@@ -239,9 +239,9 @@ jobs:
     needs: [docker]
     uses: ./.github/workflows/reuse-deployment.yml
     with:
-      environment: ${{ vars.ENVIRONMENT }}
-      namespace: ${{ vars.NAMESPACE }}
-      replicas: ${{ vars.REPLICAS }}
+      environment: pro
+      namespace: pro
+      replicas: "4"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
 

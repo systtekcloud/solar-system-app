@@ -5,19 +5,22 @@ on:
     inputs:
       environment:
         description: "Environment to deploy to"
+        default: "dev"
         required: true
         type: string
       kubectl-version:
         description: "Kubectl version"
         default: "v1.34.2"
-        required: true
+        required: false
         type: string
       namespace:
         description: "Namespace"
+        default: "dev"
         required: true
         type: string
       replicas:
         description: "Replicas"
+        default: "1"
         required: true
         type: string
       k8s-manifests-path:
@@ -63,7 +66,7 @@ jobs:
       - name: install kubectl CLI
         uses: azure/setup-kubectl@v4
         with:
-          version: ${{ inputs.kubectl-version }}
+          version: '${{ inputs.kubectl-version }}'
 
       - name: Set Kubeconfig
         uses: azure/k8s-set-context@v4
