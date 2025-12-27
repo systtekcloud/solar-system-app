@@ -178,7 +178,6 @@ jobs:
   dev-deploy:
     if: contains(github.ref, 'dev') || github.ref == 'feature/*'
     needs: [docker]
-    name: Deploy to Dev Environment
     uses: ./.github/workflows/reuse-deployment.yml
     secrets:
       k8s-kubeconfigs: ${{ secrets.KUBECONFIG }}
@@ -232,7 +231,6 @@ jobs:
   pro-deploy:
     if: github.ref == 'refs/heads/main'
     needs: [docker]
-    name: Deploy to Pro Environment
     uses: ./.github/workflows/reuse-deployment.yml
     secrets:
       k8s-kubeconfigs: ${{ secrets.KUBECONFIG }}
