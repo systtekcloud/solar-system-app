@@ -4,12 +4,33 @@ on:
   workflow_call:
     inputs:
       environment:
+        description: "Environment to deploy to"
         required: true
         type: string
       ingress-ip:
+        description: "Ingress IP"
         required: true
         type: string
       ingress-host:
+        description: "Ingress Host"
+        required: true
+        type: string
+      kubectl-version:
+        description: "Kubectl version"
+        default: "v1.34.2"
+        required: true
+        type: string
+      namespace:
+        description: "Namespace"
+        required: true
+        type: string
+      replicas:
+        description: "Replicas"
+        required: true
+        type: string
+      k8s-manifests-path:
+        description: "K8s manifests path"
+        default: "kubernetes"
         required: true
         type: string
     secrets:
@@ -40,7 +61,7 @@ jobs:
       - name: install kubectl CLI
         uses: azure/setup-kubectl@v4
         with:
-          version: "v1.34.2"
+          version: ${{ inputs.kubectl-version }}
 
       - name: Set Kubeconfig
         uses: azure/k8s-set-context@v4
@@ -68,10 +89,10 @@ jobs:
         with:
           tokenPrefix: "_{_"
           tokenSuffix: "_}_"
-          files: '["kubernetes/${{ inputs.environment }}/*.yaml"]'
+          files: '["${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/*.yaml"]'
         env:
-          NAMESPACE: ${{ vars.NAMESPACE }}
-          REPLICAS: ${{ vars.REPLICAS }}
+          NAMESPACE: ${{ inputs.namespace }}
+          REPLICAS: ${{ inputs.replicas }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
           INGRESS_IP: ${{ inputs.ingress-ip }}
           MONGO_URI: ${{ secrets.mongo-uri }}
@@ -97,13 +118,13 @@ jobs:
       - name: Apply manifests to Kubernetes
         run: |
           set -e
-          ls -la kubernetes/${{ inputs.environment }}/ingress.yaml
-          kubectl apply -f kubernetes/${{ inputs.environment }}/ingress.yaml
+          ls -la ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/ingress.yaml
+          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/ingress.yaml
 
       - name: Set App Ingress Host
         id: set-app-ingress-host
         run: |
-          export APP_INGRESS_HOST=$(kubectl get ingress -n ${{ vars.NAMESPACE }} solar-system -o jsonpath='{.spec.tls[0].hosts[0]}')
+          export APP_INGRESS_HOST=$(kubectl get ingress -n ${{ inputs.namespace }} solar-system -o jsonpath='{.spec.tls[0].hosts[0]}')
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_ENV
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_OUTPUT
 
