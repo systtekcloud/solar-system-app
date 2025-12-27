@@ -181,8 +181,8 @@ jobs:
     uses: ./.github/workflows/reuse-deployment.yml
     with:
       environment: dev
-      namespace: ${{ vars.NAMESPACE }}
-      replicas: ${{ vars.REPLICAS }}
+      namespace: dev
+      replicas: "1"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
     secrets:
@@ -240,8 +240,8 @@ jobs:
     uses: ./.github/workflows/reuse-deployment.yml
     with:
       environment: pro
-      namespace: ${{ vars.NAMESPACE }}
-      replicas: ${{ vars.REPLICAS }}
+      namespace: pro
+      replicas: "4"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
     secrets:
