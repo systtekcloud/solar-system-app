@@ -50,7 +50,7 @@ on:
 
 jobs:
   reuse-deploy:
-    name: Deploy to ${{ inputs.environment }} Environment
+    name: Deploy to ${{ inputs.environment }} environment
     environment:
       name: ${{ inputs.environment }}
       url: ${{ steps.set-app-ingress-url.outputs.APP_INGRESS_URL }}
