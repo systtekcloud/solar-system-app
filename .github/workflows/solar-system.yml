@@ -347,3 +347,24 @@ jobs:
             | jq -r .status | grep -i live
 
           echo "✅ Integration test passed!"
+
+  slack-notification:
+    if: always()
+    name: Slack Notification
+    needs: [dev-integration-testing, pro-integration-testing]
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: github-actions
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_USERNAME: github-actions
+          SLACK_ICON_EMOJI: ':github:'
+          SLACK_TITLE: Informational message
+          SLACK_MESSAGE: ':hammer_and_wrench' Triggered by ${{ github.actor }}
+          
+          
+          
