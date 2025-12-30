@@ -1,0 +1,71 @@
+name: Integration Testing - Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        default: "dev"
+        required: true
+        type: string
+      app-url:
+        description: "Application URL"
+        required: true
+        type: string
+      app-host:
+        description: "Application Host"
+        required: true
+        type: string
+      ingress-ip:
+        description: "Ingress IP"
+        required: true
+        type: string
+
+jobs:
+  reuse-integration-testing:
+    name: ${{ inputs.environment }} Integration Testing
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.app-url }}
+    runs-on: self-hosted
+    steps:
+      - name: Debug received inputs
+        run: |
+          echo "ENVIRONMENT='${{ inputs.environment }}'"
+          echo "APP_INGRESS_URL='${{ inputs.app-url }}'"
+          echo "APP_INGRESS_HOST='${{ inputs.app-host }}'"
+          echo "INGRESS_IP='${{ inputs.ingress-ip }}'"
+          echo "NAMESPACE='${{ vars.NAMESPACE }}'"  
+
+      - name: Test Application via LoadBalancer IP
+        env:
+          APP_INGRESS_URL: ${{ inputs.app-url }}
+          APP_INGRESS_HOST: ${{ inputs.app-host }}
+          INGRESS_IP: ${{ inputs.ingress-ip }}
+          NAMESPACE: ${{ vars.NAMESPACE }}
+        run: |
+          set -euo pipefail
+          echo "Testing URL: ${APP_INGRESS_URL}/live"
+          echo "Using Host header: ${APP_INGRESS_HOST}"
+
+          # Wait for service to be ready (max 60 seconds)
+          echo "Waiting for service to be ready..."
+          for i in {1..12}; do
+            if curl -sS --fail --max-time 5 -k \
+              -H "Host: ${APP_INGRESS_HOST}" \
+              "${APP_INGRESS_URL}/live" 2>/dev/null; then
+              echo "✅ Service is ready!"
+              break
+            fi
+            echo "Attempt $i/12: Service not ready yet, waiting..."
+            sleep 5
+          done
+
+          # Final test with verbose output
+          echo -e "\n=== Running final test ==="
+          curl -sS --fail -k -v \
+            -H "Host: ${APP_INGRESS_HOST}" \
+            "${APP_INGRESS_URL}/live" \
+            | jq -r .status | grep -i live
+
+          echo "✅ Integration test passed!"

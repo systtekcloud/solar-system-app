@@ -248,44 +248,12 @@ jobs:
     if: contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/feature/')
     name: Dev Integration Testing
     needs: [dev-deploy]
-    runs-on: self-hosted
-    steps:
-      - name: Debug received outputs
-        run: |
-          echo "APP_INGRESS_URL='${{ needs.dev-deploy.outputs.application-url }}'"
-          echo "APP_INGRESS_HOST='${{ needs.dev-deploy.outputs.application-host }}'"
-          echo "INGRESS_IP='${{ needs.dev-deploy.outputs.ingress-ip }}'"
-
-      - name: Test Application via LoadBalancer IP
-        env:
-          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.application-url }}
-          APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.application-host }}
-        run: |
-          set -euo pipefail
-          echo "Testing URL: ${APP_INGRESS_URL}/live"
-          echo "Using Host header: ${APP_INGRESS_HOST}"
-
-          # Wait for service to be ready (max 60 seconds)
-          echo "Waiting for service to be ready..."
-          for i in {1..12}; do
-            if curl -sS --fail --max-time 5 -k \
-              -H "Host: ${APP_INGRESS_HOST}" \
-              "${APP_INGRESS_URL}/live" 2>/dev/null; then
-              echo "✅ Service is ready!"
-              break
-            fi
-            echo "Attempt $i/12: Service not ready yet, waiting..."
-            sleep 5
-          done
-
-          # Final test with verbose output
-          echo -e "\n=== Running final test ==="
-          curl -sS --fail -k -v \
-            -H "Host: ${APP_INGRESS_HOST}" \
-            "${APP_INGRESS_URL}/live" \
-            | jq -r .status | grep -i live
-
-          echo "✅ Integration test passed!"
+    uses: ./.github/workflows/reuse-integration-test.yml
+    with:
+      environment: dev
+      app-url: ${{ needs.dev-deploy.outputs.application-url }}
+      app-host: ${{ needs.dev-deploy.outputs.application-host }}
+      ingress-ip: ${{ needs.dev-deploy.outputs.ingress-ip }}
 
   pro-deploy:
     if: github.ref == 'refs/heads/main'
@@ -305,45 +273,13 @@ jobs:
     if: github.ref == 'refs/heads/main'
     name: Pro Integration Testing
     needs: [pro-deploy]
-    runs-on: self-hosted
-    steps:
-      - name: Debug received outputs
-        run: |
-          echo "APP_INGRESS_URL='${{ needs.pro-deploy.outputs.application-url }}'"
-          echo "APP_INGRESS_HOST='${{ needs.pro-deploy.outputs.application-host }}'"
-          echo "INGRESS_IP='${{ needs.pro-deploy.outputs.ingress-ip }}'"
-
-      - name: Test Application via LoadBalancer IP
-        env:
-          APP_INGRESS_URL: ${{ needs.pro-deploy.outputs.application-url }}
-          APP_INGRESS_HOST: ${{ needs.pro-deploy.outputs.application-host }}
-        run: |
-          set -euo pipefail
-          echo "Testing URL: ${APP_INGRESS_URL}/live"
-          echo "Using Host header: ${APP_INGRESS_HOST}"
-
-          # Wait for service to be ready (max 60 seconds)
-          echo "Waiting for service to be ready..."
-          for i in {1..12}; do
-            if curl -sS --fail --max-time 5 -k \
-              -H "Host: ${APP_INGRESS_HOST}" \
-              "${APP_INGRESS_URL}/live" 2>/dev/null; then
-              echo "✅ Service is ready!"
-              break
-            fi
-            echo "Attempt $i/12: Service not ready yet, waiting..."
-            sleep 5
-          done
-
-          # Final test with verbose output
-          echo -e "\n=== Running final test ==="
-          curl -sS --fail -k -v \
-            -H "Host: ${APP_INGRESS_HOST}" \
-            "${APP_INGRESS_URL}/live" \
-            | jq -r .status | grep -i live
-
-          echo "✅ Integration test passed!"
-
+    uses: ./.github/workflows/reuse-integration-test.yml
+    with:
+      environment: pro
+      app-url: ${{ needs.pro-deploy.outputs.application-url }}
+      app-host: ${{ needs.pro-deploy.outputs.application-host }}
+      ingress-ip: ${{ needs.pro-deploy.outputs.ingress-ip }}
+      
   slack-notification:
     if: always()
     name: Slack Notification
