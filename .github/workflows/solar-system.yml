@@ -355,43 +355,88 @@ jobs:
       - name: Determine workflow status
         id: workflow-status
         run: |
-          # Evaluar el resultado de cada job
-          if [[ "${{ needs.unit-testing.result }}" == "failure" ]] || \
-            [[ "${{ needs.code-coverage.result }}" == "failure" ]] || \
-            [[ "${{ needs.docker.result }}" == "failure" ]] || \
-            [[ "${{ needs.dev-integration-testing.result }}" == "failure" ]] || \
-            [[ "${{ needs.pro-integration-testing.result }}" == "failure" ]]; then
+          # Inicializar flags
+          FAILED=0
+          WARNING=0
+          
+          # Evaluar cada job crítico (ignorando skipped)
+          for job_result in "${{ needs.unit-testing.result }}" \
+                            "${{ needs.code-coverage.result }}" \
+                            "${{ needs.docker.result }}" \
+                            "${{ needs.dev-integration-testing.result }}" \
+                            "${{ needs.pro-integration-testing.result }}"; do
+            
+            if [[ "$job_result" == "failure" ]]; then
+              FAILED=1
+              break
+            fi
+          done
+          
+          # Reports S3 es warning, no critical
+          if [[ "${{ needs.reports-s3.result }}" == "failure" ]]; then
+            WARNING=1
+          fi
+          
+          # Determinar status final
+          if [[ $FAILED -eq 1 ]]; then
             echo "STATUS=failure" >> $GITHUB_OUTPUT
-            echo "COLOR=#FF0000" >> $GITHUB_OUTPUT
+            echo "COLOR=danger" >> $GITHUB_OUTPUT
             echo "EMOJI=:x:" >> $GITHUB_OUTPUT
-          elif [[ "${{ needs.reports-s3.result }}" == "failure" ]]; then
+          elif [[ $WARNING -eq 1 ]]; then
             echo "STATUS=warning" >> $GITHUB_OUTPUT
-            echo "COLOR=#FFA500" >> $GITHUB_OUTPUT
+            echo "COLOR=warning" >> $GITHUB_OUTPUT
             echo "EMOJI=:warning:" >> $GITHUB_OUTPUT
           else
             echo "STATUS=success" >> $GITHUB_OUTPUT
-            echo "COLOR=#00FF00" >> $GITHUB_OUTPUT
+            echo "COLOR=good" >> $GITHUB_OUTPUT
             echo "EMOJI=:white_check_mark:" >> $GITHUB_OUTPUT
           fi
       
       - name: Build detailed message
         id: build-message
         run: |
-          MESSAGE="${{ steps.workflow-status.outputs.EMOJI }} Workflow *${{ steps.workflow-status.outputs.STATUS }}*\n"
-          MESSAGE+="Branch: \`${{ github.ref_name }}\`\n"
-          MESSAGE+="Commit: \`${{ github.sha }}\`\n"
-          MESSAGE+="Triggered by: ${{ github.actor }}\n\n"
-          MESSAGE+="*Job Results:*\n"
-          MESSAGE+="• Unit Tests: ${{ needs.unit-testing.result }}\n"
-          MESSAGE+="• Code Coverage: ${{ needs.code-coverage.result }}\n"
-          MESSAGE+="• Docker Build: ${{ needs.docker.result }}\n"
-          MESSAGE+="• Dev Deploy: ${{ needs.dev-integration-testing.result }}\n"
-          MESSAGE+="• Pro Deploy: ${{ needs.pro-integration-testing.result }}\n"
-          MESSAGE+="• Reports S3: ${{ needs.reports-s3.result }}\n"
+          # Crear mensaje base
+          cat <<EOF > message.txt
+          ${{ steps.workflow-status.outputs.EMOJI }} *Workflow ${{ steps.workflow-status.outputs.STATUS }}*
           
-          echo "MESSAGE<<EOF" >> $GITHUB_OUTPUT
-          echo "$MESSAGE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          *Repository:* \`${{ github.repository }}\`
+          *Branch:* \`${{ github.ref_name }}\`
+          *Commit:* \`${GITHUB_SHA:0:7}\` - ${{ github.event.head_commit.message }}
+          *Author:* ${{ github.actor }}
+          *Trigger:* ${{ github.event_name }}
+          
+          *Job Results:*
+          EOF
+          
+          # Añadir solo jobs ejecutados
+          [[ "${{ needs.unit-testing.result }}" != "skipped" ]] && \
+            echo "• Unit Tests: ${{ needs.unit-testing.result }}" >> message.txt
+          
+          [[ "${{ needs.code-coverage.result }}" != "skipped" ]] && \
+            echo "• Code Coverage: ${{ needs.code-coverage.result }}" >> message.txt
+          
+          [[ "${{ needs.docker.result }}" != "skipped" ]] && \
+            echo "• Docker Build: ${{ needs.docker.result }}" >> message.txt
+          
+          [[ "${{ needs.dev-integration-testing.result }}" != "skipped" ]] && \
+            echo "• Dev Integration: ${{ needs.dev-integration-testing.result }}" >> message.txt
+          
+          [[ "${{ needs.pro-integration-testing.result }}" != "skipped" ]] && \
+            echo "• Pro Integration: ${{ needs.pro-integration-testing.result }}" >> message.txt
+          
+          [[ "${{ needs.reports-s3.result }}" != "skipped" ]] && \
+            echo "• S3 Reports: ${{ needs.reports-s3.result }}" >> message.txt
+          
+          # Añadir link
+          echo "" >> message.txt
+          echo "*View Logs:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow Run #${{ github.run_number }}>" >> message.txt
+          
+          # Exportar output
+          {
+            echo "MESSAGE<<EOF"
+            cat message.txt
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
       
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
@@ -404,7 +449,3 @@ jobs:
           SLACK_TITLE: 'Pipeline ${{ steps.workflow-status.outputs.STATUS }}: ${{ github.workflow }}'
           SLACK_MESSAGE: ${{ steps.build-message.outputs.MESSAGE }}
           SLACK_FOOTER: 'Repository: ${{ github.repository }}'
-
-            
-            
-            
