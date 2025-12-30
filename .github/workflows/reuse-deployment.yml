@@ -121,8 +121,15 @@ jobs:
           ls -la ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/
           
           # Apply all manifests
-          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/*.yaml
-
+          echo "→ Applying deployment.yaml..."
+          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/deployment.yaml
+          echo "→ Applying service.yaml..."
+          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/service.yaml
+          echo "→ Applying ingress.yaml..."
+          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/ingress.yaml
+          
+          echo "→ All manifests applied successfully"
+          
       - name: Set App Ingress Host
         id: set-app-ingress-host
         run: |
