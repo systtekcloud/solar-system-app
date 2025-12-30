@@ -13,16 +13,6 @@ on:
         default: "v1.34.2"
         required: false
         type: string
-      namespace:
-        description: "Namespace"
-        default: "dev"
-        required: true
-        type: string
-      replicas:
-        description: "Replicas"
-        default: "1"
-        required: true
-        type: string
       k8s-manifests-path:
         description: "K8s manifests path"
         default: "kubernetes"
@@ -96,28 +86,27 @@ jobs:
           tokenSuffix: "_}_"
           files: '["${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/*.yaml"]'
         env:
-          NAMESPACE: ${{ inputs.namespace }}
-          REPLICAS: ${{ inputs.replicas }}
+          NAMESPACE: ${{ vars.NAMESPACE }}
+          REPLICAS: ${{ vars.REPLICAS }}
           IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
           INGRESS_IP: ${{ steps.set-ingress-ip.outputs.INGRESS_IP }}
           MONGO_URI: ${{ secrets.mongo-uri }}
 
       - name: Create Namespace
         run: |
-          if kubectl get namespace ${{ inputs.namespace }}; then
-            echo "Namespace ${{ inputs.namespace }} already exists"
+          if kubectl get namespace ${{ vars.NAMESPACE }}; then
+            echo "Namespace ${{ vars.NAMESPACE }} already exists"
           else
-            kubectl create namespace ${{ inputs.namespace }}
+            kubectl create namespace ${{ vars.NAMESPACE }}
           fi
       
       - name: Debug namespace
         run: |
-          echo "inputs.namespace='${{ inputs.namespace }}'"
           echo "vars.NAMESPACE='${{ vars.NAMESPACE }}'"
 
       - name: Create MongoDB Secret
         run: |
-          kubectl -n ${{ inputs.namespace }} create secret generic mongo-db-creds \
+          kubectl -n ${{ vars.NAMESPACE }} create secret generic mongo-db-creds \
             --from-literal=MONGO_URI=${{ secrets.mongo-uri }} \
             --from-literal=MONGO_USERNAME=${{ secrets.mongo-username }} \
             --from-literal=MONGO_PASSWORD=${{ secrets.mongo-password }} \
@@ -128,13 +117,23 @@ jobs:
       - name: Apply manifests to Kubernetes
         run: |
           set -e
-          ls -la ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/ingress.yaml
+          echo "Applying all manifests from ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/"
+          ls -la ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/
+          
+          # Apply all manifests
+          echo "→ Applying deployment.yaml..."
+          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/deployment.yaml
+          echo "→ Applying service.yaml..."
+          kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/service.yaml
+          echo "→ Applying ingress.yaml..."
           kubectl apply -f ${{ inputs.k8s-manifests-path }}/${{ inputs.environment }}/ingress.yaml
-
+          
+          echo "→ All manifests applied successfully"
+          
       - name: Set App Ingress Host
         id: set-app-ingress-host
         run: |
-          export APP_INGRESS_HOST=$(kubectl get ingress -n ${{ inputs.namespace }} solar-system -o jsonpath='{.spec.tls[0].hosts[0]}')
+          export APP_INGRESS_HOST=$(kubectl get ingress -n ${{ vars.NAMESPACE }} solar-system -o jsonpath='{.spec.tls[0].hosts[0]}')
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_ENV
           echo "APP_INGRESS_HOST=$APP_INGRESS_HOST" >> $GITHUB_OUTPUT
 

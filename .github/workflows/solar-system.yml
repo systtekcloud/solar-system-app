@@ -225,7 +225,7 @@ jobs:
         with:
           context: .
           push: true
-          load: true
+          # load: true
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/solar-system-app:${{ github.sha }}
@@ -236,8 +236,6 @@ jobs:
     uses: ./.github/workflows/reuse-deployment.yml
     with:
       environment: dev
-      namespace: dev
-      replicas: "1"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
     secrets:
@@ -248,46 +246,13 @@ jobs:
 
   dev-integration-testing:
     if: contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/feature/')
-    name: Dev Integration Testing
     needs: [dev-deploy]
-    runs-on: self-hosted
-    steps:
-      - name: Debug received outputs
-        run: |
-          echo "APP_INGRESS_URL='${{ needs.dev-deploy.outputs.application-url }}'"
-          echo "APP_INGRESS_HOST='${{ needs.dev-deploy.outputs.application-host }}'"
-          echo "INGRESS_IP='${{ needs.dev-deploy.outputs.ingress-ip }}'"
-
-      - name: Test Application via LoadBalancer IP
-        env:
-          APP_INGRESS_URL: ${{ needs.dev-deploy.outputs.application-url }}
-          APP_INGRESS_HOST: ${{ needs.dev-deploy.outputs.application-host }}
-        run: |
-          set -euo pipefail
-          echo "Testing URL: ${APP_INGRESS_URL}/live"
-          echo "Using Host header: ${APP_INGRESS_HOST}"
-
-          # Wait for service to be ready (max 60 seconds)
-          echo "Waiting for service to be ready..."
-          for i in {1..12}; do
-            if curl -sS --fail --max-time 5 -k \
-              -H "Host: ${APP_INGRESS_HOST}" \
-              "${APP_INGRESS_URL}/live" 2>/dev/null; then
-              echo "✅ Service is ready!"
-              break
-            fi
-            echo "Attempt $i/12: Service not ready yet, waiting..."
-            sleep 5
-          done
-
-          # Final test with verbose output
-          echo -e "\n=== Running final test ==="
-          curl -sS --fail -k -v \
-            -H "Host: ${APP_INGRESS_HOST}" \
-            "${APP_INGRESS_URL}/live" \
-            | jq -r .status | grep -i live
-
-          echo "✅ Integration test passed!"
+    uses: ./.github/workflows/reuse-integration-test.yml
+    with:
+      environment: dev
+      app-url: ${{ needs.dev-deploy.outputs.application-url }}
+      app-host: ${{ needs.dev-deploy.outputs.application-host }}
+      ingress-ip: ${{ needs.dev-deploy.outputs.ingress-ip }}
 
   pro-deploy:
     if: github.ref == 'refs/heads/main'
@@ -295,8 +260,6 @@ jobs:
     uses: ./.github/workflows/reuse-deployment.yml
     with:
       environment: pro
-      namespace: pro
-      replicas: "4"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
     secrets:
@@ -307,43 +270,116 @@ jobs:
 
   pro-integration-testing:
     if: github.ref == 'refs/heads/main'
-    name: Pro Integration Testing
     needs: [pro-deploy]
+    uses: ./.github/workflows/reuse-integration-test.yml
+    with:
+      environment: pro
+      app-url: ${{ needs.pro-deploy.outputs.application-url }}
+      app-host: ${{ needs.pro-deploy.outputs.application-host }}
+      ingress-ip: ${{ needs.pro-deploy.outputs.ingress-ip }}
+
+  slack-notification:
+    if: always()
+    name: Slack Notification
+    needs: [unit-testing, code-coverage, docker, dev-integration-testing, pro-integration-testing, reports-s3]
     runs-on: self-hosted
     steps:
-      - name: Debug received outputs
+      - uses: actions/checkout@v4
+      
+      - name: Determine workflow status
+        id: workflow-status
         run: |
-          echo "APP_INGRESS_URL='${{ needs.pro-deploy.outputs.application-url }}'"
-          echo "APP_INGRESS_HOST='${{ needs.pro-deploy.outputs.application-host }}'"
-          echo "INGRESS_IP='${{ needs.pro-deploy.outputs.ingress-ip }}'"
-
-      - name: Test Application via LoadBalancer IP
-        env:
-          APP_INGRESS_URL: ${{ needs.pro-deploy.outputs.application-url }}
-          APP_INGRESS_HOST: ${{ needs.pro-deploy.outputs.application-host }}
-        run: |
-          set -euo pipefail
-          echo "Testing URL: ${APP_INGRESS_URL}/live"
-          echo "Using Host header: ${APP_INGRESS_HOST}"
-
-          # Wait for service to be ready (max 60 seconds)
-          echo "Waiting for service to be ready..."
-          for i in {1..12}; do
-            if curl -sS --fail --max-time 5 -k \
-              -H "Host: ${APP_INGRESS_HOST}" \
-              "${APP_INGRESS_URL}/live" 2>/dev/null; then
-              echo "✅ Service is ready!"
+          # Inicializar flags
+          FAILED=0
+          WARNING=0
+          
+          # Evaluar cada job crítico (ignorando skipped)
+          for job_result in "${{ needs.unit-testing.result }}" \
+                            "${{ needs.code-coverage.result }}" \
+                            "${{ needs.docker.result }}" \
+                            "${{ needs.dev-integration-testing.result }}" \
+                            "${{ needs.pro-integration-testing.result }}"; do
+            
+            if [[ "$job_result" == "failure" ]]; then
+              FAILED=1
               break
             fi
-            echo "Attempt $i/12: Service not ready yet, waiting..."
-            sleep 5
           done
-
-          # Final test with verbose output
-          echo -e "\n=== Running final test ==="
-          curl -sS --fail -k -v \
-            -H "Host: ${APP_INGRESS_HOST}" \
-            "${APP_INGRESS_URL}/live" \
-            | jq -r .status | grep -i live
-
-          echo "✅ Integration test passed!"
+          
+          # Reports S3 es warning, no critical
+          if [[ "${{ needs.reports-s3.result }}" == "failure" ]]; then
+            WARNING=1
+          fi
+          
+          # Determinar status final
+          if [[ $FAILED -eq 1 ]]; then
+            echo "STATUS=failure" >> $GITHUB_OUTPUT
+            echo "COLOR=danger" >> $GITHUB_OUTPUT
+            echo "EMOJI=:x:" >> $GITHUB_OUTPUT
+          elif [[ $WARNING -eq 1 ]]; then
+            echo "STATUS=warning" >> $GITHUB_OUTPUT
+            echo "COLOR=warning" >> $GITHUB_OUTPUT
+            echo "EMOJI=:warning:" >> $GITHUB_OUTPUT
+          else
+            echo "STATUS=success" >> $GITHUB_OUTPUT
+            echo "COLOR=good" >> $GITHUB_OUTPUT
+            echo "EMOJI=:white_check_mark:" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build detailed message
+        id: build-message
+        run: |
+          # Crear mensaje base
+          cat <<EOF > message.txt
+          ${{ steps.workflow-status.outputs.EMOJI }} *Workflow ${{ steps.workflow-status.outputs.STATUS }}*
+          
+          *Repository:* \`${{ github.repository }}\`
+          *Branch:* \`${{ github.ref_name }}\`
+          *Commit:* \`${GITHUB_SHA:0:7}\` - ${{ github.event.head_commit.message }}
+          *Author:* ${{ github.actor }}
+          *Trigger:* ${{ github.event_name }}
+          
+          *Job Results:*
+          EOF
+          
+          # Añadir solo jobs ejecutados
+          [[ "${{ needs.unit-testing.result }}" != "skipped" ]] && \
+            echo "• Unit Tests: ${{ needs.unit-testing.result }}" >> message.txt
+          
+          [[ "${{ needs.code-coverage.result }}" != "skipped" ]] && \
+            echo "• Code Coverage: ${{ needs.code-coverage.result }}" >> message.txt
+          
+          [[ "${{ needs.docker.result }}" != "skipped" ]] && \
+            echo "• Docker Build: ${{ needs.docker.result }}" >> message.txt
+          
+          [[ "${{ needs.dev-integration-testing.result }}" != "skipped" ]] && \
+            echo "• Dev Integration: ${{ needs.dev-integration-testing.result }}" >> message.txt
+          
+          [[ "${{ needs.pro-integration-testing.result }}" != "skipped" ]] && \
+            echo "• Pro Integration: ${{ needs.pro-integration-testing.result }}" >> message.txt
+          
+          [[ "${{ needs.reports-s3.result }}" != "skipped" ]] && \
+            echo "• S3 Reports: ${{ needs.reports-s3.result }}" >> message.txt
+          
+          # Añadir link
+          echo "" >> message.txt
+          echo "*View Logs:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow Run #${{ github.run_number }}>" >> message.txt
+          
+          # Exportar output
+          {
+            echo "MESSAGE<<EOF"
+            cat message.txt
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+      
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: github-actions
+          SLACK_COLOR: ${{ steps.workflow-status.outputs.COLOR }}
+          SLACK_USERNAME: github-actions
+          SLACK_ICON_EMOJI: ':github:'
+          SLACK_TITLE: 'Pipeline ${{ steps.workflow-status.outputs.STATUS }}: ${{ github.workflow }}'
+          SLACK_MESSAGE: ${{ steps.build-message.outputs.MESSAGE }}
+          SLACK_FOOTER: 'Repository: ${{ github.repository }}'
