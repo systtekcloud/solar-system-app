@@ -39,6 +39,7 @@ jobs:
 
       - name: Test Application via LoadBalancer IP
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
           APP_INGRESS_URL: ${{ inputs.app-url }}
           APP_INGRESS_HOST: ${{ inputs.app-host }}
           INGRESS_IP: ${{ inputs.ingress-ip }}
@@ -47,7 +48,7 @@ jobs:
           set -euo pipefail
           
           echo "======================================="
-          echo "Integration Test - ${ENVIRONMENT} Environment"
+          echo "Integration Test - ${ENVIRONMENT} environment"
           echo "======================================="
           echo "URL: ${APP_INGRESS_URL}/live"
           echo "Host: ${APP_INGRESS_HOST}"
