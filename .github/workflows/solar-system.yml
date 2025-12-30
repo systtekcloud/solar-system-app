@@ -246,7 +246,6 @@ jobs:
 
   dev-integration-testing:
     if: contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/feature/')
-    name: Dev Integration Testing
     needs: [dev-deploy]
     uses: ./.github/workflows/reuse-integration-test.yml
     with:
@@ -271,7 +270,6 @@ jobs:
 
   pro-integration-testing:
     if: github.ref == 'refs/heads/main'
-    name: Pro Integration Testing
     needs: [pro-deploy]
     uses: ./.github/workflows/reuse-integration-test.yml
     with:
@@ -279,7 +277,7 @@ jobs:
       app-url: ${{ needs.pro-deploy.outputs.application-url }}
       app-host: ${{ needs.pro-deploy.outputs.application-host }}
       ingress-ip: ${{ needs.pro-deploy.outputs.ingress-ip }}
-      
+
   slack-notification:
     if: always()
     name: Slack Notification

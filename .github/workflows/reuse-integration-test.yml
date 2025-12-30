@@ -23,7 +23,7 @@ on:
 
 jobs:
   reuse-integration-testing:
-    name: ${{ inputs.environment }} Integration Testing
+    name: ${{ inputs.environment }} integration testing
     environment:
       name: ${{ inputs.environment }}
       url: ${{ inputs.app-url }}
