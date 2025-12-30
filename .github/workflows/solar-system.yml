@@ -364,7 +364,7 @@ jobs:
           SLACK_USERNAME: github-actions
           SLACK_ICON_EMOJI: ':github:'
           SLACK_TITLE: Informational message
-          SLACK_MESSAGE: ':hammer_and_wrench' Triggered by ${{ github.actor }}
+          SLACK_MESSAGE: ':hammer_and_wrench Triggered by ${{ github.actor }}'
           
           
           
