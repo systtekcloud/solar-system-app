@@ -225,7 +225,7 @@ jobs:
         with:
           context: .
           push: true
-          load: true
+          # load: true
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/solar-system-app:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/solar-system-app:${{ github.sha }}
@@ -236,8 +236,6 @@ jobs:
     uses: ./.github/workflows/reuse-deployment.yml
     with:
       environment: dev
-      namespace: dev
-      replicas: "1"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
     secrets:
@@ -295,8 +293,6 @@ jobs:
     uses: ./.github/workflows/reuse-deployment.yml
     with:
       environment: pro
-      namespace: pro
-      replicas: "4"
       kubectl-version: "v1.34.2"
       k8s-manifests-path: "kubernetes"
     secrets:
@@ -351,20 +347,64 @@ jobs:
   slack-notification:
     if: always()
     name: Slack Notification
-    needs: [dev-integration-testing, pro-integration-testing]
+    needs: [unit-testing, code-coverage, docker, dev-integration-testing, pro-integration-testing, reports-s3]
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Determine workflow status
+        id: workflow-status
+        run: |
+          # Evaluar el resultado de cada job
+          if [[ "${{ needs.unit-testing.result }}" == "failure" ]] || \
+            [[ "${{ needs.code-coverage.result }}" == "failure" ]] || \
+            [[ "${{ needs.docker.result }}" == "failure" ]] || \
+            [[ "${{ needs.dev-integration-testing.result }}" == "failure" ]] || \
+            [[ "${{ needs.pro-integration-testing.result }}" == "failure" ]]; then
+            echo "STATUS=failure" >> $GITHUB_OUTPUT
+            echo "COLOR=#FF0000" >> $GITHUB_OUTPUT
+            echo "EMOJI=:x:" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.reports-s3.result }}" == "failure" ]]; then
+            echo "STATUS=warning" >> $GITHUB_OUTPUT
+            echo "COLOR=#FFA500" >> $GITHUB_OUTPUT
+            echo "EMOJI=:warning:" >> $GITHUB_OUTPUT
+          else
+            echo "STATUS=success" >> $GITHUB_OUTPUT
+            echo "COLOR=#00FF00" >> $GITHUB_OUTPUT
+            echo "EMOJI=:white_check_mark:" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build detailed message
+        id: build-message
+        run: |
+          MESSAGE="${{ steps.workflow-status.outputs.EMOJI }} Workflow *${{ steps.workflow-status.outputs.STATUS }}*\n"
+          MESSAGE+="Branch: \`${{ github.ref_name }}\`\n"
+          MESSAGE+="Commit: \`${{ github.sha }}\`\n"
+          MESSAGE+="Triggered by: ${{ github.actor }}\n\n"
+          MESSAGE+="*Job Results:*\n"
+          MESSAGE+="• Unit Tests: ${{ needs.unit-testing.result }}\n"
+          MESSAGE+="• Code Coverage: ${{ needs.code-coverage.result }}\n"
+          MESSAGE+="• Docker Build: ${{ needs.docker.result }}\n"
+          MESSAGE+="• Dev Deploy: ${{ needs.dev-integration-testing.result }}\n"
+          MESSAGE+="• Pro Deploy: ${{ needs.pro-integration-testing.result }}\n"
+          MESSAGE+="• Reports S3: ${{ needs.reports-s3.result }}\n"
+          
+          echo "MESSAGE<<EOF" >> $GITHUB_OUTPUT
+          echo "$MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: github-actions
-          SLACK_COLOR: ${{ job.status }}
+          SLACK_COLOR: ${{ steps.workflow-status.outputs.COLOR }}
           SLACK_USERNAME: github-actions
           SLACK_ICON_EMOJI: ':github:'
-          SLACK_TITLE: Informational message
-          SLACK_MESSAGE: ':hammer_and_wrench: Triggered by ${{ github.actor }}'
-          
-          
-          
+          SLACK_TITLE: 'Pipeline ${{ steps.workflow-status.outputs.STATUS }}: ${{ github.workflow }}'
+          SLACK_MESSAGE: ${{ steps.build-message.outputs.MESSAGE }}
+          SLACK_FOOTER: 'Repository: ${{ github.repository }}'
+
+            
+            
+            
