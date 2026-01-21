@@ -16,7 +16,6 @@ runs:
         key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
     - name: Install dependencies
-      working-directory: ${{ inputs.cache-path }}
       run: |
         npm install
       shell: bash
