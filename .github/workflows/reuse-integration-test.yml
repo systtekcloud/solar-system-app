@@ -39,33 +39,84 @@ jobs:
 
       - name: Test Application via LoadBalancer IP
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
           APP_INGRESS_URL: ${{ inputs.app-url }}
           APP_INGRESS_HOST: ${{ inputs.app-host }}
           INGRESS_IP: ${{ inputs.ingress-ip }}
           NAMESPACE: ${{ vars.NAMESPACE }}
         run: |
           set -euo pipefail
-          echo "Testing URL: ${APP_INGRESS_URL}/live"
-          echo "Using Host header: ${APP_INGRESS_HOST}"
-
+          
+          echo "======================================="
+          echo "Integration Test - ${ENVIRONMENT} environment"
+          echo "======================================="
+          echo "URL: ${APP_INGRESS_URL}/live"
+          echo "Host: ${APP_INGRESS_HOST}"
+          echo "Namespace: ${NAMESPACE}"
+          echo ""
+          
           # Wait for service to be ready (max 60 seconds)
           echo "Waiting for service to be ready..."
+          SERVICE_READY=0
+          
           for i in {1..12}; do
+            echo "Attempt $i/12..."
+            
+            # Test with proper validation
             if curl -sS --fail --max-time 5 -k \
               -H "Host: ${APP_INGRESS_HOST}" \
-              "${APP_INGRESS_URL}/live" 2>/dev/null; then
-              echo "✅ Service is ready!"
+              "${APP_INGRESS_URL}/live" 2>/dev/null | \
+              jq -e '.status == "live"' > /dev/null 2>&1; then
+              
+              echo "✅ Service is ready on attempt $i!"
+              SERVICE_READY=1
               break
             fi
-            echo "Attempt $i/12: Service not ready yet, waiting..."
+            
+            echo "   Service not ready yet, waiting 5 seconds..."
             sleep 5
           done
-
-          # Final test with verbose output
-          echo -e "\n=== Running final test ==="
-          curl -sS --fail -k -v \
+          
+          # Verify service became ready
+          if [[ $SERVICE_READY -eq 0 ]]; then
+            echo ""
+            echo "❌ ERROR: Service failed to become ready after 60 seconds (12 attempts)"
+            echo ""
+            echo "=== Diagnostic Information ==="
+            echo ""
+            echo "→ Attempting verbose curl for debugging..."
+            curl -v -k -H "Host: ${APP_INGRESS_HOST}" "${APP_INGRESS_URL}/live" 2>&1 || true
+            echo ""
+            echo "→ Checking Kubernetes pods status..."
+            kubectl get pods -n ${NAMESPACE} -l app=solar-system 2>/dev/null || true
+            echo ""
+            echo "→ Checking recent pod logs..."
+            kubectl logs -n ${NAMESPACE} -l app=solar-system --tail=20 2>/dev/null || true
+            echo ""
+            exit 1
+          fi
+          
+          # Final validation test
+          echo ""
+          echo "=== Running final validation ==="
+          RESPONSE=$(curl -sS --fail -k \
             -H "Host: ${APP_INGRESS_HOST}" \
-            "${APP_INGRESS_URL}/live" \
-            | jq -r .status | grep -i live
-
-          echo "✅ Integration test passed!"
+            "${APP_INGRESS_URL}/live")
+          
+          echo "Response: $RESPONSE"
+          
+          # Validate JSON structure
+          if ! echo "$RESPONSE" | jq empty 2>/dev/null; then
+            echo "❌ Response is not valid JSON"
+            exit 1
+          fi
+          
+          # Validate status field
+          STATUS=$(echo "$RESPONSE" | jq -r .status)
+          if [[ "$STATUS" != "live" ]]; then
+            echo "❌ Expected status 'live', got '$STATUS'"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ Integration test passed for ${ENVIRONMENT} environment!"
